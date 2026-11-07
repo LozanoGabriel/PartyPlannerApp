@@ -16,3 +16,10 @@ export const mockEventDetails: EventDetails = {
 export const mockOk = {
     body: "ok"
 }
+
+export const mockGuestDetails = {
+    name : "Pedro",
+    plus_one_allowed: false,
+    invitation_status: "not_sent",
+    rsvp_status : "pending"
+}
