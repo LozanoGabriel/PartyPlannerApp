@@ -1,3 +1,5 @@
+import 'dotenv/config';
+import {createClient} from '@supabase/supabase-js'
 import express from "express"
 import cors from "cors"
 import eventDetailRoutes from "./routes/event-details-routes"
@@ -12,3 +14,14 @@ const PORT = Number(process.env.PORT) || 3000;
 app.listen(PORT, '0.0.0.0', () => console.log(`Server listening on ${PORT}`));
 
 app.use("/api/", eventDetailRoutes);
+
+// Creating client on Supabase
+const url = process.env.SUPABASE_URL;
+const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY;
+
+if (!url || !key){
+    throw new Error('Missing url or key in .env')
+}
+
+export const supabase = createClient(url,key)
+
