@@ -12,3 +12,7 @@ export const mockEventDetails: EventDetails = {
     startTime : currentDateTime.toUTCString(),
     endTime : endDateTime.toUTCString(),
 }
+
+export const mockOk = {
+    body: "ok"
+}
