@@ -9,6 +9,7 @@
     "strict": false,                          /* Set to true later when JS migration is done */
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "rootDir": "..",
     "outDir": "./dist"
   },
   "include": ["**/*","../interfaces/**/*"],
