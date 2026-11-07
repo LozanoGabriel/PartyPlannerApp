@@ -15,7 +15,7 @@ create table event_type_templates (
   timeline                  text[] not null default '{}'
 );
 
-
+-- becomes template for invitation
 create table events (
   id                uuid primary key default gen_random_uuid(),
   host_id           uuid not null references auth.users(id) on delete cascade,
@@ -25,11 +25,7 @@ create table events (
   start_time        timestamptz not null,
   end_time          timestamptz not null,
   address           text,
-  parking           text,
-  dress_code        text,
   rsvp_deadline     timestamptz,
-  point_of_contact  text,
-  gift_registry     text,
   total_budget      numeric(10,2),
   additional_fields jsonb not null default '[]',  -- teammate's EventFields[] (custom fields)
   created_at        timestamptz not null default now(),
