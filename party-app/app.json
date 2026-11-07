@@ -8,7 +8,9 @@
     "scheme": "partyapp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/expo.icon",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "bundleIdentifier": "com.partyplanner.partyplannerapp"
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +20,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.crisman2005.partyapp"
+      "package": "com.partyplanner.partyplannerapp",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "server",
@@ -34,14 +37,27 @@
           "imageWidth": 76
         }
       ],
-        [
-          "expo-build-properties",
-          {
-            "android": {
-              "cmakeVersion": "4.1.2"
-            }
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "cmakeVersion": "4.1.2"
+          },
+          "ios": {
+          "useFrameworks": "dynamic"
           }
-        ]
+        }
+      ],
+      [
+        "@react-native-firebase/messaging",
+        {
+          "installationIdEnabled": true
+        }
+      ],
+      [
+        "@react-native-firebase/app",
+        {}
+      ],
     ],
     "experiments": {
       "typedRoutes": true,

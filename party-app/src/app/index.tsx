@@ -1,5 +1,5 @@
 import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, Alert, PermissionsAndroid } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AnimatedIcon } from '@/components/animated-icon';
@@ -8,6 +8,18 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { WebBadge } from '@/components/web-badge';
 import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+
+import { useEffect } from 'react';
+import { initializeApp } from 'firebase/app';
+import {
+  getMessaging,
+  register,
+  unregister,
+  onRegistered,
+  onUnregistered,
+  registerDeviceForRemoteMessages,
+} from '@react-native-firebase/messaging';
+const messaging = getMessaging();
 
 function getDevMenuHint() {
   if (Platform.OS === 'web') {
@@ -29,6 +41,17 @@ function getDevMenuHint() {
 }
 
 export default function HomeScreen() {
+
+  useEffect(() => {
+    PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+    onRegistered(messaging, installationId => {
+    // Upload the FID to your backend
+    console.log('registered', installationId);
+    });
+    
+  },
+   [])
+
   return (
     <ThemedView style={styles.container}>
       <SafeAreaView style={styles.safeArea}>
