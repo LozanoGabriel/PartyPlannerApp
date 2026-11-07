@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",            /* Allows omitting .js extensions */
+    "allowImportingTsExtensions": false,      /* Keeps paths extensionless */
+    "allowJs": true,
+    "esModuleInterop": true,
+    "strict": false,                          /* Set to true later when JS migration is done */
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist"
+  },
+  "include": ["**/*","../interfaces/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
