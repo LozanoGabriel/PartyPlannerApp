@@ -5,6 +5,8 @@ import { Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from "r
 import { DashboardLayout } from "../components/dashboard-layout";
 import { EventPreview, useEventPreview } from "../components/event-preview-context";
 import { SaveChangesDialog } from "../components/save-changes-dialog";
+import { useAppPreferences } from "../components/app-preferences";
+import { darkPalette } from "../components/dark-palette";
 
 const fields: { key: Exclude<keyof EventPreview, "imageUri">; label: string; hint?: string }[] = [
   { key: "name", label: "Event Name" },
@@ -21,6 +23,7 @@ function validationError(event: EventPreview) {
 }
 
 export default function EditEventScreen() {
+  const { darkMode } = useAppPreferences();
   const { event, setEvent } = useEventPreview();
   const [draft, setDraft] = useState(event);
   const [dialog, setDialog] = useState<"save" | "leave" | null>(null);
@@ -117,14 +120,14 @@ export default function EditEventScreen() {
               onChangeText={(value) => { setDraft({ ...draft, [key]: value }); setError(""); }}
               keyboardType={key === "duration" ? "number-pad" : "default"}
               maxLength={key === "duration" ? 3 : 200}
-              style={styles.input}
+              style={[styles.input, darkMode && styles.darkInput]}
             />
             {hint && <Text style={styles.hint}>{hint}</Text>}
           </View>
         ))}
         {!!error && <Text style={styles.error} accessibilityRole="alert">{error}</Text>}
-        <Pressable accessibilityRole="button" accessibilityState={{ disabled: !changed }} disabled={!changed} onPress={() => setDialog("save")} style={[styles.button, !changed && styles.disabled]}>
-          <Text style={styles.buttonText}>Save Changes</Text>
+        <Pressable accessibilityRole="button" accessibilityState={{ disabled: !changed }} disabled={!changed} onPress={() => setDialog("save")} style={[styles.button, darkMode && styles.darkPanel, !changed && styles.disabled]}>
+          <Text style={[styles.buttonText, darkMode && styles.darkAccent]}>Save Changes</Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={goBack} style={styles.back}>
           <Text style={styles.backText}>Back to My Event</Text>
@@ -136,6 +139,9 @@ export default function EditEventScreen() {
 }
 
 const styles = StyleSheet.create({
+  darkPanel: { backgroundColor: darkPalette.panel },
+  darkInput: { backgroundColor: darkPalette.panel, color: darkPalette.text },
+  darkAccent: { color: darkPalette.accent },
   card: { backgroundColor: "#c65d58", borderRadius: 32, padding: 20, gap: 14 },
   title: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 26, textAlign: "center" },
   notice: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 13, lineHeight: 18, textAlign: "center" },

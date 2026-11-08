@@ -3,11 +3,14 @@ import { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { DashboardLayout } from "../../components/dashboard-layout";
 import { useEventSettings } from "../../components/event-settings-context";
+import { useAppPreferences } from "../../components/app-preferences";
+import { BackToDashboard } from "../../components/event-flow";
 
 const gala = require("../../../assets/images/gala_birthday.png");
 
 export default function EventSubmission() {
   const { resetPreview } = useEventSettings();
+  const { darkMode, aiSuggestions } = useAppPreferences();
   const [imageError, setImageError] = useState(false);
 
   return (
@@ -16,13 +19,13 @@ export default function EventSubmission() {
         <Text style={styles.title} accessibilityRole="header">Let the planning party begin!</Text>
         <View style={styles.galaFrame}>
           {imageError ? (
-            <Text style={styles.notice} accessibilityRole="alert">Unable to load Gala&apos;s birthday image.</Text>
+            <Text style={[styles.notice, darkMode && styles.darkText]} accessibilityRole="alert">Unable to load Gala&apos;s birthday image.</Text>
           ) : (
             <Image source={gala} style={styles.gala} resizeMode="contain" accessibilityLabel="Gala celebrating a birthday" onError={(event) => { console.error("Failed to load Gala's birthday image:", event.nativeEvent.error); setImageError(true); }} />
           )}
         </View>
-        <Text style={styles.subtitle}>Gala has prepared your event workspace and initial planning checklist.</Text>
-        <Text style={styles.notice}>Example preview only. No event, workspace, or checklist has been created.</Text>
+        <Text style={styles.subtitle}>{aiSuggestions ? "Gala has prepared your event workspace and initial planning checklist." : "Your event workspace and planning checklist preview."}</Text>
+        <Text style={[styles.notice, darkMode && styles.darkText]}>Example preview only. No event, workspace, or checklist has been created.</Text>
         <View style={styles.card}>
           <Text style={styles.eventTitle}>Mario&apos;s Birthday</Text>
           <Text style={styles.details}>December 5, 2026 • 5:00 PM</Text>
@@ -41,9 +44,7 @@ export default function EventSubmission() {
         <Pressable style={styles.primary} accessibilityRole="link" onPress={() => { resetPreview(); router.replace("/events"); }}>
           <Text style={styles.primaryText}>Go to My Event</Text>
         </Pressable>
-        <Pressable style={styles.back} accessibilityRole="link" onPress={() => { resetPreview(); router.replace("/dashboard"); }}>
-          <Text style={styles.backText}>Go to Home</Text>
-        </Pressable>
+        <BackToDashboard />
       </View>
     </DashboardLayout>
   );
@@ -64,6 +65,5 @@ const styles = StyleSheet.create({
   sample: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 12 },
   primary: { minHeight: 48, borderRadius: 24, backgroundColor: "#c65d58", alignItems: "center", justifyContent: "center", padding: 12 },
   primaryText: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 16 },
-  back: { minHeight: 48, alignItems: "center", justifyContent: "center" },
-  backText: { color: "#533331", fontFamily: "DMSans_700Bold", fontSize: 15, textDecorationLine: "underline" },
+  darkText: { color: "#ffffff" },
 });

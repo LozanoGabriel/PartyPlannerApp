@@ -7,6 +7,8 @@ import { GatherBrand } from "./gather-brand";
 import { SaveChangesDialog } from "./save-changes-dialog";
 import { TaskDatePicker } from "./task-date-picker";
 import { taskExamples } from "./task-examples";
+import { useAppPreferences } from "./app-preferences";
+import { darkPalette } from "./dark-palette";
 
 const guests = ["Me", "Claribel Hernandez", "Cristian Mantilla", "Gabriel Lozano"];
 type Draft = { event: string; title: string; date: Date | null; assignee: string; notes: string };
@@ -18,6 +20,7 @@ function exampleDraft(id: string): Draft {
 }
 
 export function TaskForm({ mode, initialTask }: { mode: "create" | "edit"; initialTask?: string }) {
+  const { darkMode } = useAppPreferences();
   const [selected, setSelected] = useState(taskExamples.some((task) => task.id === initialTask) ? initialTask : undefined);
   const [draft, setDraft] = useState<Draft>(() => initialTask ? exampleDraft(initialTask) : emptyDraft);
   const [baseline, setBaseline] = useState<Draft>(() => initialTask ? exampleDraft(initialTask) : emptyDraft);
@@ -82,11 +85,11 @@ export function TaskForm({ mode, initialTask }: { mode: "create" | "edit"; initi
   }
 
   const overlay = discardPrompt ? (
-    <View style={styles.discardPrompt} accessibilityLiveRegion="polite">
-      <Text style={styles.discardText}>Discard this task and return to Events?</Text>
+    <View style={[styles.discardPrompt, darkMode && styles.darkPanel]} accessibilityLiveRegion="polite">
+      <Text style={[styles.discardText, darkMode && styles.darkText]}>Discard this task and return to Events?</Text>
       <View style={styles.discardButtons}>
-        <Pressable accessibilityRole="button" onPress={() => { pending.current = null; leave(); }} style={styles.promptButton}><Text style={styles.buttonText}>Discard Task</Text></Pressable>
-        <Pressable accessibilityRole="button" onPress={() => setDiscardPrompt(false)} style={styles.promptButton}><Text style={styles.buttonText}>Keep Editing</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => { pending.current = null; leave(); }} style={styles.promptButton}><Text style={[styles.buttonText, darkMode && styles.darkAccent]}>Discard Task</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => setDiscardPrompt(false)} style={styles.promptButton}><Text style={[styles.buttonText, darkMode && styles.darkAccent]}>Keep Editing</Text></Pressable>
       </View>
     </View>
   ) : undefined;
@@ -99,29 +102,29 @@ export function TaskForm({ mode, initialTask }: { mode: "create" | "edit"; initi
         <Text style={styles.notice}>Preview only. Tasks are not saved to a server.</Text>
         {mode === "edit" && <>
           <Text style={styles.label}>Choose a task</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Choose a task" accessibilityState={{ expanded: taskMenu }} onPress={() => setTaskMenu(!taskMenu)} style={styles.select}>
-            <Text style={styles.inputText}>{selected ? taskExamples.find((item) => item.id === selected)?.title : "Select a task"}</Text>
-            <Ionicons name={taskMenu ? "chevron-up" : "chevron-down"} size={20} color="#a43f3a" />
+          <Pressable accessibilityRole="button" accessibilityLabel="Choose a task" accessibilityState={{ expanded: taskMenu }} onPress={() => setTaskMenu(!taskMenu)} style={[styles.select, darkMode && styles.darkPanel]}>
+            <Text style={[styles.inputText, darkMode && styles.darkText]}>{selected ? taskExamples.find((item) => item.id === selected)?.title : "Select a task"}</Text>
+            <Ionicons name={taskMenu ? "chevron-up" : "chevron-down"} size={20} color={darkMode ? darkPalette.accent : "#a43f3a"} />
           </Pressable>
-          {taskMenu && <View style={styles.options}>{taskExamples.map((task) => <Pressable key={task.id} accessibilityRole="button" onPress={() => {
+          {taskMenu && <View style={[styles.options, darkMode && styles.darkPanel]}>{taskExamples.map((task) => <Pressable key={task.id} accessibilityRole="button" onPress={() => {
             if (changed) { pending.current = () => selectTask(task.id); setDialog("select"); }
             else selectTask(task.id);
-          }} style={styles.option}><Text style={styles.inputText}>{task.title}</Text></Pressable>)}</View>}
+          }} style={styles.option}><Text style={[styles.inputText, darkMode && styles.darkText]}>{task.title}</Text></Pressable>)}</View>}
         </>}
         {(mode === "create" || selected) && <>
-          <View style={styles.field}><Text style={styles.label}>Event</Text><TextInput accessibilityLabel="Event" value={draft.event} onChangeText={(event) => setDraft({ ...draft, event })} placeholder="Mario's Birthday Party" placeholderTextColor="#777777" style={styles.input} /></View>
-          <View style={styles.field}><Text style={styles.label}>What needs to get done?</Text><TextInput accessibilityLabel="What needs to get done?" value={draft.title} onChangeText={(title) => setDraft({ ...draft, title })} placeholder="What needs to get done?" placeholderTextColor="#777777" style={styles.input} /></View>
+          <View style={styles.field}><Text style={styles.label}>Event</Text><TextInput accessibilityLabel="Event" value={draft.event} onChangeText={(event) => setDraft({ ...draft, event })} placeholder="Mario's Birthday Party" placeholderTextColor={darkMode ? darkPalette.placeholder : "#777777"} style={[styles.input, darkMode && styles.darkInput]} /></View>
+          <View style={styles.field}><Text style={styles.label}>What needs to get done?</Text><TextInput accessibilityLabel="What needs to get done?" value={draft.title} onChangeText={(title) => setDraft({ ...draft, title })} placeholder="What needs to get done?" placeholderTextColor={darkMode ? darkPalette.placeholder : "#777777"} style={[styles.input, darkMode && styles.darkInput]} /></View>
           <View style={styles.field}><Text style={styles.label}>Due Date</Text><TaskDatePicker value={draft.date} onChange={(date) => setDraft({ ...draft, date })} /></View>
           <View style={styles.field}>
             <Text style={styles.label}>Assign to</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="Assign to" accessibilityState={{ expanded: guestMenu }} onPress={() => setGuestMenu(!guestMenu)} style={styles.select}>
-              <Text style={styles.inputText}>{draft.assignee}</Text><Ionicons name={guestMenu ? "chevron-up" : "chevron-down"} size={20} color="#a43f3a" />
+            <Pressable accessibilityRole="button" accessibilityLabel="Assign to" accessibilityState={{ expanded: guestMenu }} onPress={() => setGuestMenu(!guestMenu)} style={[styles.select, darkMode && styles.darkPanel]}>
+              <Text style={[styles.inputText, darkMode && styles.darkText]}>{draft.assignee}</Text><Ionicons name={guestMenu ? "chevron-up" : "chevron-down"} size={20} color={darkMode ? darkPalette.accent : "#a43f3a"} />
             </Pressable>
-            {guestMenu && <View style={styles.options}>{guests.map((guest) => <Pressable key={guest} accessibilityRole="button" onPress={() => { setDraft({ ...draft, assignee: guest }); setGuestMenu(false); }} style={styles.option}><Text style={styles.inputText}>{guest}</Text></Pressable>)}</View>}
+            {guestMenu && <View style={[styles.options, darkMode && styles.darkPanel]}>{guests.map((guest) => <Pressable key={guest} accessibilityRole="button" onPress={() => { setDraft({ ...draft, assignee: guest }); setGuestMenu(false); }} style={styles.option}><Text style={[styles.inputText, darkMode && styles.darkText]}>{guest}</Text></Pressable>)}</View>}
           </View>
-          <View style={styles.field}><Text style={styles.label}>Notes (optional)</Text><TextInput accessibilityLabel="Notes (optional)" value={draft.notes} onChangeText={(notes) => setDraft({ ...draft, notes })} placeholder="Add more details..." placeholderTextColor="#777777" multiline style={[styles.input, styles.notes]} /></View>
+          <View style={styles.field}><Text style={styles.label}>Notes (optional)</Text><TextInput accessibilityLabel="Notes (optional)" value={draft.notes} onChangeText={(notes) => setDraft({ ...draft, notes })} placeholder="Add more details..." placeholderTextColor={darkMode ? darkPalette.placeholder : "#777777"} multiline style={[styles.input, styles.notes, darkMode && styles.darkInput]} /></View>
           {!!notice && <Text style={styles.notice} accessibilityLiveRegion="polite">{notice}</Text>}
-          {mode === "create" ? <Pressable accessibilityRole="button" onPress={() => setNotice("Task creation is not connected yet. Nothing was saved.")} style={styles.button}><Text style={styles.buttonText}>Create Task</Text></Pressable> : <Pressable accessibilityRole="button" disabled={!changed} accessibilityState={{ disabled: !changed }} onPress={() => setDialog("save")} style={[styles.button, !changed && styles.disabled]}><Text style={styles.buttonText}>Save Changes</Text></Pressable>}
+          {mode === "create" ? <Pressable accessibilityRole="button" onPress={() => setNotice("Task creation is not connected yet. Nothing was saved.")} style={[styles.button, darkMode && styles.darkPanel]}><Text style={[styles.buttonText, darkMode && styles.darkAccent]}>Create Task</Text></Pressable> : <Pressable accessibilityRole="button" disabled={!changed} accessibilityState={{ disabled: !changed }} onPress={() => setDialog("save")} style={[styles.button, darkMode && styles.darkPanel, !changed && styles.disabled]}><Text style={[styles.buttonText, darkMode && styles.darkAccent]}>Save Changes</Text></Pressable>}
         </>}
         <Pressable accessibilityRole="button" onPress={() => setDiscardPrompt(true)} style={styles.back}><Text style={styles.backText}>{mode === "create" ? "Discard Task" : "Back to Events"}</Text></Pressable>
       </View>
@@ -131,6 +134,10 @@ export function TaskForm({ mode, initialTask }: { mode: "create" | "edit"; initi
 }
 
 const styles = StyleSheet.create({
+  darkPanel: { backgroundColor: darkPalette.panel },
+  darkInput: { backgroundColor: darkPalette.panel, color: darkPalette.text },
+  darkText: { color: darkPalette.text },
+  darkAccent: { color: darkPalette.accent },
   card: { backgroundColor: "#c65d58", borderRadius: 32, padding: 20, gap: 12 },
   title: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 26, textAlign: "center" },
   notice: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 13, textAlign: "center" },

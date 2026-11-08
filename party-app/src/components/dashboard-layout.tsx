@@ -7,6 +7,7 @@ import { Href, router, Stack } from "expo-router";
 import { ReactNode, RefObject, useEffect } from "react";
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAppPreferences } from "./app-preferences";
 
 const galaIcon = require("../../assets/images/navbar_gala_button.png");
 type NavPage = "Home" | "Events" | "Tasks" | "Gala";
@@ -27,6 +28,7 @@ export function DashboardLayout({ children, active, showNavigation = true, compa
   scrollRef?: RefObject<ScrollView | null>;
   onContentSizeChange?: (width: number, height: number) => void;
 }) {
+  const { darkMode } = useAppPreferences();
   const [loaded, error] = useFonts({
     DMSans_400Regular,
     DMSans_700Bold,
@@ -39,14 +41,14 @@ export function DashboardLayout({ children, active, showNavigation = true, compa
   }, [error]);
 
   return (
-    <SafeAreaView style={layout.page}>
+    <SafeAreaView style={[layout.page, darkMode && layout.darkPage]}>
       <Stack.Screen options={{ headerShown: false }} />
       {!loaded ? (
         <View style={layout.status}>
           {error ? (
-            <Text accessibilityRole="alert">Unable to load the dashboard fonts. Please restart the app.</Text>
+            <Text style={darkMode && layout.darkText} accessibilityRole="alert">Unable to load the dashboard fonts. Please restart the app.</Text>
           ) : (
-            <ActivityIndicator size="large" color="#2c2c2c" accessibilityLabel="Loading page" />
+            <ActivityIndicator size="large" color={darkMode ? "#ffffff" : "#2c2c2c"} accessibilityLabel="Loading page" />
           )}
         </View>
       ) : (
@@ -84,14 +86,15 @@ export function DashboardLayout({ children, active, showNavigation = true, compa
 }
 
 export function DashboardPlaceholder({ title, active }: { title: string; active?: NavPage }) {
+  const { darkMode } = useAppPreferences();
   return (
     <DashboardLayout active={active}>
       <View style={layout.placeholder}>
         <Text style={layout.placeholderTitle} accessibilityRole="header">{title}</Text>
-        <Text style={layout.placeholderText}>This page is a preview and is not connected yet.</Text>
+        <Text style={[layout.placeholderText, darkMode && layout.darkText]}>This page is a preview and is not connected yet.</Text>
         {title === "Settings" && (
           <Pressable accessibilityRole="link" onPress={() => router.replace("/login")}>
-            <Text style={layout.backLink}>Back to sign in</Text>
+            <Text style={[layout.backLink, darkMode && layout.darkText]}>Back to sign in</Text>
           </Pressable>
         )}
       </View>
@@ -101,6 +104,8 @@ export function DashboardPlaceholder({ title, active }: { title: string; active?
 
 const layout = StyleSheet.create({
   page: { flex: 1, backgroundColor: "#ffa49f" },
+  darkPage: { backgroundColor: "#1b1b1b" },
+  darkText: { color: "#ffffff" },
   status: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
   scrollArea: { flex: 1 },
   content: { flexGrow: 1, width: "100%", maxWidth: 600, alignSelf: "center", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24 },

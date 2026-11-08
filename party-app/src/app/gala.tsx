@@ -6,6 +6,8 @@ import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, Text
 import { DashboardLayout } from "../components/dashboard-layout";
 import { GatherBrand } from "../components/gather-brand";
 import { speechRecognition } from "../components/speech-recognition";
+import { useAppPreferences } from "../components/app-preferences";
+import { darkPalette } from "../components/dark-palette";
 
 const gala = require("../../assets/images/gala_front_facing.png");
 
@@ -19,6 +21,7 @@ const suggestions = [
 type Message = { id: number; speaker: "You" | "Gala"; text: string; attachment?: string };
 
 export default function GalaScreen() {
+  const { darkMode } = useAppPreferences();
   const { width } = useWindowDimensions();
   const narrow = width < 360;
   const [draft, setDraft] = useState("");
@@ -192,9 +195,9 @@ export default function GalaScreen() {
         <Text style={styles.sectionTitle} accessibilityRole="header">What can I help you with?</Text>
         <View style={styles.suggestions}>
           {suggestions.map((item) => (
-            <Pressable key={item.title} accessibilityRole="button" accessibilityLabel={`${item.title}. ${item.detail}`} onPress={() => chooseSuggestion(item.title, item.reply)} style={({ pressed }) => [styles.suggestion, narrow && styles.narrowSuggestion, pressed && styles.pressed]}>
-              <Text style={[styles.suggestionTitle, narrow && styles.narrowSuggestionTitle]}>{item.title}</Text>
-              <Text style={[styles.suggestionDetail, narrow && styles.narrowSuggestionDetail]}>{item.detail}</Text>
+            <Pressable key={item.title} accessibilityRole="button" accessibilityLabel={`${item.title}. ${item.detail}`} onPress={() => chooseSuggestion(item.title, item.reply)} style={({ pressed }) => [styles.suggestion, darkMode && styles.darkPanel, narrow && styles.narrowSuggestion, pressed && styles.pressed]}>
+              <Text style={[styles.suggestionTitle, narrow && styles.narrowSuggestionTitle, darkMode && styles.darkText]}>{item.title}</Text>
+              <Text style={[styles.suggestionDetail, narrow && styles.narrowSuggestionDetail, darkMode && styles.darkText]}>{item.detail}</Text>
             </Pressable>
           ))}
         </View>
@@ -202,25 +205,25 @@ export default function GalaScreen() {
         {messages.length > 0 && (
           <ScrollView ref={chatRef} style={styles.conversation} contentContainerStyle={styles.messageList} nestedScrollEnabled keyboardShouldPersistTaps="handled" onContentSizeChange={() => chatRef.current?.scrollToEnd({ animated: true })} accessibilityLabel="Preview conversation">
             {messages.map((message) => (
-              <View key={message.id} style={[styles.message, message.speaker === "You" ? styles.userMessage : styles.galaMessage]}>
-                {message.speaker === "Gala" ? <View style={styles.messageHeader}><Image source={gala} style={styles.messageGala} resizeMode="contain" accessible={false} /><Text style={styles.messageAuthor}>Gala · sample reply</Text></View> : <Text style={styles.messageAuthor}>You</Text>}
-                {!!message.text && <Text style={styles.messageText}>{message.text}</Text>}
-                {message.attachment && <Text style={styles.attachmentText}>Attachment: {message.attachment} (not sent)</Text>}
+              <View key={message.id} style={[styles.message, message.speaker === "You" ? styles.userMessage : styles.galaMessage, darkMode && styles.darkPanel]}>
+                {message.speaker === "Gala" ? <View style={styles.messageHeader}><Image source={gala} style={styles.messageGala} resizeMode="contain" accessible={false} /><Text style={[styles.messageAuthor, darkMode && styles.darkText]}>Gala · sample reply</Text></View> : <Text style={[styles.messageAuthor, darkMode && styles.darkText]}>You</Text>}
+                {!!message.text && <Text style={[styles.messageText, darkMode && styles.darkText]}>{message.text}</Text>}
+                {message.attachment && <Text style={[styles.attachmentText, darkMode && styles.darkText]}>Attachment: {message.attachment} (not sent)</Text>}
               </View>
             ))}
           </ScrollView>
         )}
 
-        <View style={styles.composer}>
+        <View style={[styles.composer, darkMode && styles.darkPanel]}>
           {attachment && <View style={styles.attachmentRow}>
-            <Text style={styles.attachmentName} numberOfLines={1}>{attachment}</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="Remove attachment" onPress={() => setAttachment(null)} style={styles.iconButton}><Ionicons name="close-circle" size={22} color="#a43f3a" /></Pressable>
+            <Text style={[styles.attachmentName, darkMode && styles.darkText]} numberOfLines={1}>{attachment}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Remove attachment" onPress={() => setAttachment(null)} style={styles.iconButton}><Ionicons name="close-circle" size={22} color={darkMode ? darkPalette.accent : "#a43f3a"} /></Pressable>
           </View>}
-          <TextInput accessibilityLabel="Message Gala" value={draft} onChangeText={setDraft} placeholder="Ask Gala anything..." placeholderTextColor="#766966" multiline style={styles.input} />
+          <TextInput accessibilityLabel="Message Gala" value={draft} onChangeText={setDraft} placeholder="Ask Gala anything..." placeholderTextColor={darkMode ? darkPalette.placeholder : "#766966"} multiline style={[styles.input, darkMode && styles.darkText]} />
           <View style={styles.composerActions}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Attach an image or PDF" accessibilityState={{ disabled: picking }} disabled={picking} onPress={() => { void pickAttachment(); }} style={styles.iconButton}><Ionicons name="attach-outline" size={24} color="#5f514e" /></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Attach an image or PDF" accessibilityState={{ disabled: picking }} disabled={picking} onPress={() => { void pickAttachment(); }} style={styles.iconButton}><Ionicons name="attach-outline" size={24} color={darkMode ? darkPalette.text : "#5f514e"} /></Pressable>
             <View style={styles.rightActions}>
-              <Pressable accessibilityRole="button" accessibilityLabel={dictation === "listening" ? "Stop dictation" : "Start dictation"} accessibilityHint="Speech may be processed by your device or browser's speech provider." accessibilityState={{ disabled: dictation === "starting" || dictation === "stopping", selected: dictation === "listening" }} disabled={dictation === "starting" || dictation === "stopping"} onPress={() => { void toggleDictation(); }} style={styles.iconButton}><Ionicons name={dictation === "listening" ? "stop-circle" : "mic-outline"} size={24} color={dictation === "listening" ? "#a43f3a" : "#5f514e"} /></Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel={dictation === "listening" ? "Stop dictation" : "Start dictation"} accessibilityHint="Speech may be processed by your device or browser's speech provider." accessibilityState={{ disabled: dictation === "starting" || dictation === "stopping", selected: dictation === "listening" }} disabled={dictation === "starting" || dictation === "stopping"} onPress={() => { void toggleDictation(); }} style={styles.iconButton}><Ionicons name={dictation === "listening" ? "stop-circle" : "mic-outline"} size={24} color={darkMode ? (dictation === "listening" ? darkPalette.accent : darkPalette.text) : (dictation === "listening" ? "#a43f3a" : "#5f514e")} /></Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel="Send preview message" accessibilityState={{ disabled: (!draft.trim() && !attachment) || dictation !== "idle" }} disabled={(!draft.trim() && !attachment) || dictation !== "idle"} onPress={send} style={[styles.send, ((!draft.trim() && !attachment) || dictation !== "idle") && styles.sendDisabled]}><Ionicons name="arrow-up" size={22} color="#ffffff" /></Pressable>
             </View>
           </View>
@@ -233,7 +236,7 @@ export default function GalaScreen() {
             : Platform.OS === "ios"
               ? "Open app settings and allow Microphone and Speech Recognition. Return here and tap the microphone again."
               : "Open app settings, then Permissions, and allow Microphone. Return here and tap the microphone again."}</Text>
-          {Platform.OS !== "web" && <Pressable accessibilityRole="button" onPress={() => { void openPermissionSettings(); }} style={styles.settingsButton}><Text style={styles.settingsButtonText}>Open app settings</Text></Pressable>}
+          {Platform.OS !== "web" && <Pressable accessibilityRole="button" onPress={() => { void openPermissionSettings(); }} style={[styles.settingsButton, darkMode && styles.darkPanel]}><Text style={[styles.settingsButtonText, darkMode && styles.darkAccent]}>Open app settings</Text></Pressable>}
         </View>}
         <Text style={styles.preview}>Sample replies. Files stay local. Speech may be sent to a provider.</Text>
       </View>
@@ -242,6 +245,9 @@ export default function GalaScreen() {
 }
 
 const styles = StyleSheet.create({
+  darkPanel: { backgroundColor: darkPalette.panel },
+  darkText: { color: darkPalette.text },
+  darkAccent: { color: darkPalette.accent },
   brandSpacing: { marginBottom: 4 },
   narrowBrandSpacing: { marginBottom: 2 },
   container: { backgroundColor: "#c65d58", borderRadius: 28, padding: 14, gap: 6 },

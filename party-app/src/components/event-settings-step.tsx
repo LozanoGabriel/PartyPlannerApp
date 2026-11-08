@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { EventFlowButtons, GalaMessage } from "./event-flow";
 import { drinkSuggestions, EventSettings, foodSuggestions, useEventSettings } from "./event-settings-context";
+import { useAppPreferences } from "./app-preferences";
+import { darkPalette } from "./dark-palette";
 
 type MenuKey = "foods" | "drinks";
 type NumberKey = "duration" | "invitations" | "rsvp";
@@ -34,6 +36,7 @@ function formatTime(minutes: string) {
 }
 
 export function EventSettingsStep({ onBack, onContinue }: { onBack: () => void; onContinue: () => void }) {
+  const { darkMode, aiSuggestions } = useAppPreferences();
   const { settings, setSettings, editing, setEditing, reset } = useEventSettings();
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const [timelineOpen, setTimelineOpen] = useState(true);
@@ -116,9 +119,9 @@ export function EventSettingsStep({ onBack, onContinue }: { onBack: () => void; 
             {editing && (
               <>
                 <View style={styles.addRow}>
-                  <TextInput accessibilityLabel={`New ${key === "foods" ? "food" : "drink"} item`} value={newItem} onChangeText={(text) => { setNewItem(text); setItemError(""); }} placeholder="Add an item" placeholderTextColor="#666666" maxLength={60} style={styles.input} />
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Add ${key === "foods" ? "food" : "drink"} item`} onPress={() => addItem(key)} style={styles.addButton}>
-                    <Text style={styles.addText}>Add</Text>
+                  <TextInput accessibilityLabel={`New ${key === "foods" ? "food" : "drink"} item`} value={newItem} onChangeText={(text) => { setNewItem(text); setItemError(""); }} placeholder="Add an item" placeholderTextColor={darkMode ? darkPalette.placeholder : "#666666"} maxLength={60} style={[styles.input, darkMode && styles.darkInput]} />
+                  <Pressable accessibilityRole="button" accessibilityLabel={`Add ${key === "foods" ? "food" : "drink"} item`} onPress={() => addItem(key)} style={[styles.addButton, darkMode && styles.darkPanel]}>
+                    <Text style={[styles.addText, darkMode && styles.darkAccent]}>Add</Text>
                   </Pressable>
                 </View>
                 {!!itemError && <Text style={styles.error} accessibilityRole="alert">{itemError}</Text>}
@@ -147,7 +150,7 @@ export function EventSettingsStep({ onBack, onContinue }: { onBack: () => void; 
             <View style={styles.settingValue}>
               <View style={styles.settingNumber}>
                 {editing ? (
-                  <TextInput accessibilityLabel={label} value={settings[key]} onChangeText={(value) => updateNumber(key, value)} keyboardType="number-pad" maxLength={6} style={[styles.numberInput, styles.settingInput]} />
+                  <TextInput accessibilityLabel={label} value={settings[key]} onChangeText={(value) => updateNumber(key, value)} keyboardType="number-pad" maxLength={6} style={[styles.numberInput, styles.settingInput, darkMode && styles.darkInput]} />
                 ) : <Text style={[styles.value, styles.settingNumberText]}>{settings[key]}</Text>}
               </View>
               <Text style={[styles.value, styles.settingUnit]}>{unit}</Text>
@@ -155,11 +158,11 @@ export function EventSettingsStep({ onBack, onContinue }: { onBack: () => void; 
           </View>
         ))}
       </View>
-      {menu("foods", "Food Suggestions")}
-      {menu("drinks", "Drink Suggestions")}
+      {menu("foods", aiSuggestions ? "Food Suggestions" : "Food Preferences")}
+      {menu("drinks", aiSuggestions ? "Drink Suggestions" : "Drink Preferences")}
       <View style={styles.section}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Suggested timeline" accessibilityState={{ expanded: timelineOpen }} aria-expanded={timelineOpen} onPress={() => setTimelineOpen(!timelineOpen)} style={styles.timelineHeading}>
-          <Text style={styles.label}>Suggested timeline</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel={aiSuggestions ? "Suggested timeline" : "Event timeline"} accessibilityState={{ expanded: timelineOpen }} aria-expanded={timelineOpen} onPress={() => setTimelineOpen(!timelineOpen)} style={styles.timelineHeading}>
+          <Text style={styles.label}>{aiSuggestions ? "Suggested timeline" : "Event timeline"}</Text>
           <Ionicons name={timelineOpen ? "chevron-up" : "chevron-down"} size={20} color="#ffffff" />
         </Pressable>
         {!timelineOpen && <Text style={styles.notice}>6 stages · times relative to event start</Text>}
@@ -170,8 +173,8 @@ export function EventSettingsStep({ onBack, onContinue }: { onBack: () => void; 
                 <Text style={styles.number}>{index + 1}</Text>
                 {editing ? (
                   <>
-                    <TextInput accessibilityLabel={`Timeline stage ${index + 1} name`} value={item.label} onChangeText={(value) => updateTimeline(index, "label", value)} maxLength={40} style={styles.timelineInput} />
-                    <TextInput accessibilityLabel={`Timeline stage ${index + 1} minutes after start`} value={item.minutes} onChangeText={(value) => updateTimeline(index, "minutes", value)} keyboardType="number-pad" maxLength={5} style={styles.numberInput} />
+                    <TextInput accessibilityLabel={`Timeline stage ${index + 1} name`} value={item.label} onChangeText={(value) => updateTimeline(index, "label", value)} maxLength={40} style={[styles.timelineInput, darkMode && styles.darkInput]} />
+                    <TextInput accessibilityLabel={`Timeline stage ${index + 1} minutes after start`} value={item.minutes} onChangeText={(value) => updateTimeline(index, "minutes", value)} keyboardType="number-pad" maxLength={5} style={[styles.numberInput, darkMode && styles.darkInput]} />
                     <Text style={styles.value}>min</Text>
                   </>
                 ) : (
@@ -187,9 +190,9 @@ export function EventSettingsStep({ onBack, onContinue }: { onBack: () => void; 
       </View>
       {!!error && <Text style={styles.error} accessibilityLiveRegion="polite">{error}</Text>}
       <View style={styles.actions}>
-        <Pressable accessibilityRole="button" accessibilityHint="Restore the original preview suggestions and lock editing." onPress={() => { reset(); setOpenMenu(null); setTimelineOpen(true); }} style={styles.primary}>
+        {aiSuggestions && <Pressable accessibilityRole="button" accessibilityHint="Restore the original preview suggestions and lock editing." onPress={() => { reset(); setOpenMenu(null); setTimelineOpen(true); }} style={styles.primary}>
           <Text style={styles.primaryText}>Accept Suggestions</Text>
-        </Pressable>
+        </Pressable>}
         <Pressable
           accessibilityRole="button"
           accessibilityState={{ disabled: editing && !!error }}
@@ -216,6 +219,9 @@ export function EventSettingsStep({ onBack, onContinue }: { onBack: () => void; 
 }
 
 const styles = StyleSheet.create({
+  darkPanel: { backgroundColor: darkPalette.panel },
+  darkInput: { backgroundColor: darkPalette.panel, color: darkPalette.text },
+  darkAccent: { color: darkPalette.accent },
   notice: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 12 },
   settings: { gap: 5 },
   settingRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, minHeight: 25 },
