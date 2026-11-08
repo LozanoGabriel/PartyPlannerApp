@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { EventFlowButtons, EventFlowLayout, GalaMessage } from "../../components/event-flow";
+import { EventFlowButtons, EventFlowLayout } from "../../components/event-flow";
 import { EventSettingsStep } from "../../components/event-settings-step";
 import { useEventSettings } from "../../components/event-settings-context";
 import { BudgetStep, GuestStep } from "../../components/event-guest-budget";
@@ -9,6 +9,7 @@ import { useAppPreferences } from "../../components/app-preferences";
 import { darkPalette } from "../../components/dark-palette";
 import { TaskDatePicker } from "../../components/task-date-picker";
 import { EventTimePicker } from "../../components/event-time-picker";
+import { GalaAssistant } from "../../components/gala-assistant";
 
 const eventTypes = [
   { id: "conversation", title: "Conversation / Meet-up", detail: "Coffee meetups and casual gatherings" },
@@ -17,28 +18,93 @@ const eventTypes = [
   { id: "family", title: "Family Gathering", detail: "Family reunions and get-togethers" },
   { id: "meal", title: "Shared Meal", detail: "Dinners, potlucks, brunches" },
 ] as const;
-const suggestedNames = [
-  "Celebration Time!",
-  "Cheers to Another Year",
-  "A Little Disco Magic",
-  "The Birthday Special",
-];
-
 type EventType = (typeof eventTypes)[number]["id"];
+const eventCategoryById: Record<EventType, string> = {
+  conversation: "Conversation",
+  celebration: "Celebration",
+  dance: "Dance Party",
+  family: "Family Gathering",
+  meal: "Shared Meal",
+};
+const eventIdByCategory = Object.fromEntries(
+  Object.entries(eventCategoryById).map(([id, category]) => [category, id]),
+) as Record<string, EventType>;
 
 function isEventType(value: string | string[] | undefined): value is EventType {
   return eventTypes.some((type) => type.id === value);
 }
 
 export default function CreateEventStep() {
-  const { darkMode, aiSuggestions } = useAppPreferences();
-  const { resetPreview, eventStartAt, setEventStartAt } = useEventSettings();
+  const { darkMode } = useAppPreferences();
+  const {
+    resetPreview,
+    eventDate,
+    setEventDate,
+    eventStartTime,
+    setEventStartTime,
+    settings,
+    guestCount,
+    budgetChoice,
+    budgetAmount,
+  } = useEventSettings();
   const { step: stepParam, type, name, nameMode } = useLocalSearchParams<{ step: string; type?: string; name?: string; nameMode?: string }>();
   const selected = isEventType(type) ? type : undefined;
   const customName = nameMode === "custom";
+  const eventStartAt = eventDate && eventStartTime
+    ? new Date(
+        eventDate.getFullYear(),
+        eventDate.getMonth(),
+        eventDate.getDate(),
+        eventStartTime.getHours(),
+        eventStartTime.getMinutes(),
+      )
+    : null;
   const startIsInFuture = !!eventStartAt && eventStartAt.getTime() > Date.now();
   const routeParams = { ...(selected ? { type: selected } : {}), ...(name ? { name } : {}), ...(nameMode ? { nameMode } : {}) };
   const step = Number(stepParam);
+  const eventDurationHours = Number(settings.duration);
+  const hasValidDuration =
+    /^\d+$/.test(settings.duration) &&
+    Number.isSafeInteger(eventDurationHours) &&
+    eventDurationHours >= 1 &&
+    eventDurationHours <= 168;
+  const rsvpDaysBefore = Number(settings.rsvp);
+  const hasValidRsvpDays =
+    /^\d+$/.test(settings.rsvp) && Number.isSafeInteger(rsvpDaysBefore);
+  const expectedHeadcount = Number(guestCount);
+  const hasValidHeadcount =
+    /^\d+$/.test(guestCount) &&
+    Number.isSafeInteger(expectedHeadcount) &&
+    expectedHeadcount > 0;
+  const totalBudget = Number(budgetAmount);
+  const hasValidManualBudget =
+    /^\d{1,9}(\.\d{1,2})?$/.test(budgetAmount) &&
+    Number.isFinite(totalBudget);
+  const eventDetails: Record<string, unknown> = {
+    ...(selected ? { eventType: eventCategoryById[selected] } : {}),
+    ...(step >= 2 && name?.trim() ? { name: name.trim() } : {}),
+    ...(step >= 2 && eventStartAt ? { startTime: eventStartAt.toISOString() } : {}),
+    ...(step >= 3 && eventStartAt && hasValidDuration
+      ? {
+          endTime: new Date(
+            eventStartAt.getTime() + eventDurationHours * 60 * 60 * 1000,
+          ).toISOString(),
+        }
+      : {}),
+    ...(step >= 3 && eventStartAt && hasValidRsvpDays && rsvpDaysBefore > 0
+      ? {
+          rsvpDeadline: new Date(
+            eventStartAt.getTime() - rsvpDaysBefore * 24 * 60 * 60 * 1000,
+          ).toISOString(),
+        }
+      : {}),
+    ...(step >= 4 && hasValidHeadcount
+      ? { expectedHeadcount }
+      : {}),
+    ...(step >= 5 && (budgetChoice === "manual" || budgetChoice === "generate") && hasValidManualBudget
+      ? { totalBudget }
+      : {}),
+  };
 
   if (!Number.isInteger(step) || step < 1 || step > 5) {
     return (
@@ -71,7 +137,15 @@ export default function CreateEventStep() {
             <Text style={styles.title} accessibilityRole="header">Let&apos;s plan something special.</Text>
             <Text style={styles.subtitle}>Start with the basics. You can customize everything later.</Text>
           </View>
-          <GalaMessage heading="Gala says...">{"I'll help you organize the details and suggest a planning checklist based on your event!"}</GalaMessage>
+          <GalaAssistant
+            context="Event Type"
+            eventDetails={eventDetails}
+            hint="Describe the event and Gala will figure out the Event Type!"
+            onSelectEventType={(eventType) => {
+              const suggestedId = eventIdByCategory[eventType];
+              if (suggestedId) router.setParams({ type: suggestedId });
+            }}
+          />
           <View style={styles.section}>
             <Text style={styles.sectionTitle} accessibilityRole="header">Event Type</Text>
             <Text style={styles.sectionSubtitle}>What kind of gathering are you planning?</Text>
@@ -106,24 +180,15 @@ export default function CreateEventStep() {
             <Text style={styles.title} accessibilityRole="header">Let&apos;s give your event a name!</Text>
             <Text style={styles.subtitle}>Name your event based on your preferences.</Text>
           </View>
-          <GalaMessage heading="Gala has some suggestions!">{"I have a few ideas based on the kind of event you're planning. Pick one you love, or come up with your own!"}</GalaMessage>
+          <GalaAssistant
+            context="Name"
+            eventDetails={eventDetails}
+            hint="Describe the kind of name or style you want for your event."
+            onSelectName={(suggestion) => router.setParams({ name: suggestion, nameMode: "suggested" })}
+          />
           <View style={styles.nameSection}>
-            {aiSuggestions && <Text style={styles.centeredTitle} accessibilityRole="header">Choose a name suggested by Gala</Text>}
-            {aiSuggestions && <Text style={styles.subtitle}>Example suggestions for a birthday celebration</Text>}
             <View style={styles.nameList} accessibilityRole="radiogroup" accessibilityLabel="Event name">
-              {aiSuggestions && suggestedNames.map((suggestion) => (
-                <Pressable
-                  key={suggestion}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: !customName && name === suggestion }}
-                  aria-checked={!customName && name === suggestion}
-                  onPress={() => router.setParams({ name: suggestion, nameMode: "suggested" })}
-                  style={[styles.nameOption, !customName && name === suggestion && styles.selectedCard]}
-                >
-                  <Text style={styles.nameOptionText}>{suggestion}</Text>
-                </Pressable>
-              ))}
-              <Text style={styles.centeredTitle} accessibilityRole="header">{aiSuggestions ? "Or create your own name" : "Create your event name"}</Text>
+              <Text style={styles.centeredTitle} accessibilityRole="header">Create your event name</Text>
               <Pressable
                 accessibilityRole="radio"
                 accessibilityLabel="I'll come up with my own"
@@ -154,35 +219,25 @@ export default function CreateEventStep() {
               <View style={styles.scheduleField}>
                 <Text style={styles.scheduleLabel}>Date</Text>
                 <TaskDatePicker
-                  value={eventStartAt}
-                  onChange={(date) => {
-                    if (!date) {
-                      setEventStartAt(null);
-                      return;
-                    }
-                    const start = new Date(date);
-                    if (eventStartAt) start.setHours(eventStartAt.getHours(), eventStartAt.getMinutes(), 0, 0);
-                    else start.setHours(17, 0, 0, 0);
-                    setEventStartAt(start);
-                  }}
+                  value={eventDate}
+                  onChange={setEventDate}
                 />
               </View>
               <View style={styles.scheduleField}>
                 <Text style={styles.scheduleLabel}>Time</Text>
                 <EventTimePicker
-                  value={eventStartAt}
-                  onChange={(time) => {
-                    const start = new Date(eventStartAt ?? new Date());
-                    start.setHours(time.getHours(), time.getMinutes(), 0, 0);
-                    setEventStartAt(start);
-                  }}
+                  value={eventStartTime}
+                  onChange={setEventStartTime}
                 />
               </View>
             </View>
-            {!startIsInFuture && (
+            {eventStartAt && !startIsInFuture && (
               <Text style={styles.subtitle} accessibilityLiveRegion="polite">
                 Choose a future date and time for your event.
               </Text>
+            )}
+            {(!eventDate || !eventStartTime) && (
+              <Text style={styles.subtitle}>Select both a date and a time.</Text>
             )}
           </View>
           <EventFlowButtons
@@ -193,11 +248,11 @@ export default function CreateEventStep() {
           />
         </>
       ) : step === 3 ? (
-        <EventSettingsStep onBack={goBack} onContinue={() => goToStep(4)} />
+        <EventSettingsStep eventDetails={eventDetails} onBack={goBack} onContinue={() => goToStep(4)} />
       ) : step === 4 ? (
-        <GuestStep onBack={goBack} onContinue={() => goToStep(5)} />
+        <GuestStep eventDetails={eventDetails} onBack={goBack} onContinue={() => goToStep(5)} />
       ) : (
-        <BudgetStep onBack={goBack} onContinue={() => router.push({ pathname: "/create-event/submit", params: routeParams })} />
+        <BudgetStep eventDetails={eventDetails} onBack={goBack} onContinue={() => router.push({ pathname: "/create-event/submit", params: routeParams })} />
       )}
     </EventFlowLayout>
   );
@@ -226,7 +281,6 @@ const styles = StyleSheet.create({
   centeredTitle: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 18, textAlign: "center" },
   nameList: { gap: 7, marginTop: 5 },
   nameOption: { minHeight: 46, backgroundColor: "#c65d58", borderRadius: 14, borderWidth: 3, borderColor: "transparent", paddingHorizontal: 12, paddingVertical: 8, justifyContent: "center", alignItems: "center" },
-  nameOptionText: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 15, textAlign: "center" },
   customOption: { backgroundColor: "#dedede", flexDirection: "row", gap: 8 },
   customOptionText: { color: "#333333", fontFamily: "DMSans_700Bold", fontSize: 15, textAlign: "center", flexShrink: 1 },
   nameInput: { minHeight: 48, borderRadius: 12, backgroundColor: "#ffffff", color: "#1e1e1e", fontFamily: "DMSans_400Regular", fontSize: 16, paddingHorizontal: 12, marginTop: 4 },

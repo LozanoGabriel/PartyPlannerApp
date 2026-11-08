@@ -5,8 +5,9 @@ import { DashboardLayout } from "../../components/dashboard-layout";
 import { useEventSettings } from "../../components/event-settings-context";
 import { useAppPreferences } from "../../components/app-preferences";
 import { CreateEventInput, CreatedEvent, EventType, createEvent } from "../../lib/events-api";
+import { archiveGalaConversation } from "../../lib/gala-conversation";
 
-const gala = require("../../../assets/images/gala_birthday.png");
+const gala = require("../../../assets/images/gala_front_facing.png");
 
 const EVENT_TYPE_BY_ID: Record<string, EventType> = {
   conversation: "Conversation",
@@ -17,7 +18,16 @@ const EVENT_TYPE_BY_ID: Record<string, EventType> = {
 };
 
 export default function EventSubmission() {
-  const { resetPreview, eventStartAt, settings, guestCount, budgetChoice, budgetAmount } = useEventSettings();
+  const { resetPreview, galaConversationId, eventDate, eventStartTime, settings, guestCount, budgetChoice, budgetAmount } = useEventSettings();
+  const eventStartAt = eventDate && eventStartTime
+    ? new Date(
+        eventDate.getFullYear(),
+        eventDate.getMonth(),
+        eventDate.getDate(),
+        eventStartTime.getHours(),
+        eventStartTime.getMinutes(),
+      )
+    : null;
   const { darkMode } = useAppPreferences();
   const { type, name } = useLocalSearchParams<{ type?: string; name?: string }>();
   const [imageError, setImageError] = useState(false);
@@ -52,12 +62,21 @@ export default function EventSubmission() {
     }
     const headcount = Number(guestCount);
     if (Number.isSafeInteger(headcount) && headcount > 0) eventDetails.expectedHeadcount = headcount;
-    if (budgetChoice === "manual" && budgetAmount) eventDetails.totalBudget = Number(budgetAmount);
+    if ((budgetChoice === "manual" || budgetChoice === "generate") && budgetAmount) eventDetails.totalBudget = Number(budgetAmount);
 
     setIsSubmitting(true);
     try {
       const event = await createEvent(eventDetails);
       setCreatedEvent(event);
+      try {
+        await archiveGalaConversation(galaConversationId, event.id);
+      } catch (archiveError) {
+        setError(
+          archiveError instanceof Error
+            ? `The event was created, but Gala's conversation could not be linked to it: ${archiveError.message}`
+            : "The event was created, but Gala's conversation could not be linked to it.",
+        );
+      }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "The event could not be created.");
     } finally {
@@ -80,7 +99,7 @@ export default function EventSubmission() {
           {imageError ? (
             <Text style={[styles.notice, darkMode && styles.darkText]} accessibilityRole="alert">Unable to load Gala&apos;s birthday image.</Text>
           ) : (
-            <Image source={gala} style={styles.gala} resizeMode="contain" accessibilityLabel="Gala celebrating a birthday" onError={(event) => { console.error("Failed to load Gala's birthday image:", event.nativeEvent.error); setImageError(true); }} />
+            <Image source={gala} style={styles.gala} resizeMode="contain" accessibilityLabel="Gala assistant" onError={(event) => { console.error("Failed to load Gala's image:", event.nativeEvent.error); setImageError(true); }} />
           )}
         </View>
         <Text style={styles.subtitle}>

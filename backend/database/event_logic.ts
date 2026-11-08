@@ -1,10 +1,8 @@
 import { supabase } from "../server";
 import { RSVPerror } from "./invitation_logic";
+import { EVENT_CATEGORIES } from "../constants/event-categories";
 
-export const EVENT_TYPES = [
-  "Conversation", "Celebration", "Dance Party", "Family Gathering", "Shared Meal",
-] as const;
-export type EventType = (typeof EVENT_TYPES)[number];
+export type EventType = (typeof EVENT_CATEGORIES)[number];
 
 // The set up process
 export interface NewEventInput {
@@ -12,23 +10,51 @@ export interface NewEventInput {
   eventType: EventType;
   startTime: string;          // ISO 8601
   endTime: string;
-  description?: string;
-  address?: string;
-  rsvpDeadline?: string;
-  totalBudget?: number;
-  expectedHeadcount?: number;
+  description?: string | null;
+  address?: string | null;
+  rsvpDeadline?: string | null;
+  totalBudget?: number | null;
+  expectedHeadcount?: number | null;
 }
 
 // For PATCH: send only the fields that changed
 export type PatchEventInput = Partial<NewEventInput>;
 
 const EVENT_COLUMNS =
-  "id, name, event_type, start_time, end_time, rsvp_deadline, total_budget, expected_headcount";
+  "id, name, event_type, start_time, end_time, rsvp_deadline, total_budget, expected_headcount, description, address";
+
+export async function getEventsFromSupabase(hostId: string) {
+  const { data, error } = await supabase
+    .from("events")
+    .select(EVENT_COLUMNS)
+    .eq("host_id", hostId)
+    .order("start_time", { ascending: true });
+
+  if (error) throw new RSVPerror(`Failed to load events: ${error.message}`, 500);
+  return data ?? [];
+}
+
+export async function getEventFromSupabase(hostId: string, eventId: string) {
+  if (!eventId) throw new RSVPerror("eventId is required", 400);
+  const { data, error } = await supabase
+    .from("events")
+    .select(EVENT_COLUMNS)
+    .eq("id", eventId)
+    .eq("host_id", hostId)
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === "22P02") throw new RSVPerror("Invalid eventId", 400);
+    throw new RSVPerror(`Failed to load event: ${error.message}`, 500);
+  }
+  if (!data) throw new RSVPerror("Event not found", 404);
+  return data;
+}
 
 // Shared by create and patch. Throws a 400 if anything is wrong, returns the parsed dates.
 function validateEventInput(input: NewEventInput) {
   if (!input.name?.trim()) throw new RSVPerror("Event name is required", 400);
-  if (!EVENT_TYPES.includes(input.eventType)) throw new RSVPerror("Invalid event type", 400);
+  if (!EVENT_CATEGORIES.includes(input.eventType)) throw new RSVPerror("Invalid event type", 400);
 
   const start = new Date(input.startTime);
   const end = new Date(input.endTime);
@@ -114,7 +140,9 @@ export async function patchEventInSupabase(hostId: string, eventId: string, chan
     eventType: changes.eventType ?? existing.event_type,
     startTime: changes.startTime ?? existing.start_time,
     endTime: changes.endTime ?? existing.end_time,
-    rsvpDeadline: changes.rsvpDeadline ?? existing.rsvp_deadline ?? undefined,
+    rsvpDeadline: changes.rsvpDeadline !== undefined
+      ? changes.rsvpDeadline ?? undefined
+      : existing.rsvp_deadline ?? undefined,
     expectedHeadcount: changes.expectedHeadcount ?? existing.expected_headcount ?? undefined,
   });
 

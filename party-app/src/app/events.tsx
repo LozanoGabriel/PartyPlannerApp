@@ -1,21 +1,16 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Href, router } from "expo-router";
-import { useState } from "react";
-import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { DashboardLayout } from "../components/dashboard-layout";
 import { GatherBrand } from "../components/gather-brand";
-import { useEventPreview } from "../components/event-preview-context";
-import { usePreviewProgress } from "../components/use-preview-progress";
+import { EventSelector } from "../components/event-selector";
 import { useAppPreferences } from "../components/app-preferences";
 import { darkPalette } from "../components/dark-palette";
-
-const gala = require("../../assets/images/gala_front_facing.png");
-
-function EventImage({ uri }: { uri: string }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) return <Text style={styles.whiteDetail} accessibilityRole="alert">Unable to display the event image. Choose another in Edit Event.</Text>;
-  return <Image source={{ uri }} style={styles.eventImage} resizeMode="cover" accessibilityLabel="Selected event image" onError={(error) => { console.error("Failed to load event image:", error.nativeEvent.error); setFailed(true); }} />;
-}
+import { EventRecord, getEvents } from "../lib/events-api";
+import { EventTask, getTasks } from "../lib/tasks-api";
+import { EventGuest, getGuests } from "../lib/guests-api";
 
 function PageLink({ label, href }: { label: string; href: Href }) {
   const { darkMode } = useAppPreferences();
@@ -27,92 +22,90 @@ function PageLink({ label, href }: { label: string; href: Href }) {
   );
 }
 
-function ProgressCards() {
-  const { darkMode } = useAppPreferences();
-  const { guests } = useEventPreview();
-  const { progress, fraction } = usePreviewProgress();
-  const attending = guests.filter((guest) => guest.response === "attending").length;
-  const declined = guests.filter((guest) => guest.response === "declined").length;
-  const maybe = guests.filter((guest) => guest.response === "maybe").length;
-  const awaiting = guests.filter((guest) => guest.response === "pending").length;
-  const sent = guests.filter((guest) => guest.invited).length;
-  const total = guests.length;
-
-  const width = (percentage: number) => progress.interpolate({ inputRange: [0, 1], outputRange: ["0%", `${percentage}%`] });
-
-  return (
-    <>
-      <View style={[styles.card, darkMode && styles.darkPanel]}>
-        <View style={styles.row}>
-          <Text style={[styles.cardTitle, darkMode && styles.darkText]}>Guest Responses</Text>
-          <Text style={[styles.bold, darkMode && styles.darkText]}>{Math.round(sent * fraction)} of {total} marked sent</Text>
-        </View>
-        <View style={styles.progress} accessibilityRole="progressbar" accessibilityLabel="Guest responses" accessibilityValue={{ min: 0, max: total || 1, now: total - awaiting, text: `${total - awaiting} responses from ${total} guests` }}>
-          <Animated.View style={[styles.attendingBar, { width: width(total ? attending / total * 100 : 0) }]} /><Animated.View style={[styles.declinedBar, { width: width(total ? declined / total * 100 : 0) }]} /><Animated.View style={[styles.maybeBar, { width: width(total ? maybe / total * 100 : 0) }]} />
-        </View>
-        <Text style={[styles.detail, darkMode && styles.darkText]}>{attending} attending · {declined} declined · {maybe} maybe · {awaiting} awaiting</Text>
-        <Text style={[styles.small, darkMode && styles.darkText]}>Sample guest list · Sending is not connected.</Text>
-        <Text style={[styles.detail, darkMode && styles.darkText]}><Text style={[styles.bold, darkMode && styles.darkText]}>RSVP Deadline:</Text> November 21</Text>
-        <PageLink label="View guest list" href="/guest-list" />
-        <PageLink label="Preview RSVP" href={{ pathname: "/rsvp", params: { from: "events" } }} />
-      </View>
-      <View style={[styles.card, darkMode && styles.darkPanel]}>
-        <View style={styles.row}><Text style={[styles.cardTitle, darkMode && styles.darkText]}>Planning progress</Text><Text style={[styles.cardTitle, darkMode && styles.darkText]} accessibilityLabel="65 percent">{Math.round(65 * fraction)}%</Text></View>
-        <View style={styles.progress} accessibilityRole="progressbar" accessibilityLabel="Planning progress" accessibilityValue={{ min: 0, max: 100, now: 65, text: "13 of 20 planning tasks completed" }}>
-          <Animated.View style={[styles.tasksBar, { width: width(65) }]} />
-        </View>
-        <Text style={[styles.detail, darkMode && styles.darkText]} accessibilityLabel="13 of 20 planning tasks completed">{Math.round(13 * fraction)} of 20 planning tasks completed</Text>
-        <PageLink label="View planning tasks" href="/tasks" />
-      </View>
-    </>
-  );
-}
-
 export default function EventsScreen() {
-  const { darkMode, aiSuggestions } = useAppPreferences();
-  const { event, guests } = useEventPreview();
-  const awaiting = guests.filter((guest) => guest.response === "pending").length;
+  const { darkMode } = useAppPreferences();
+  const [events, setEvents] = useState<EventRecord[]>([]);
+  const [selectedId, setSelectedId] = useState("");
+  const [tasks, setTasks] = useState<EventTask[]>([]);
+  const [guests, setGuests] = useState<EventGuest[]>([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    setLoading(true);
+    getEvents().then((items) => {
+      if (!active) return;
+      setEvents(items);
+      setSelectedId((current) => items.some((event) => event.id === current) ? current : items[0]?.id ?? "");
+      setError("");
+    }).catch((reason: unknown) => {
+      if (active) setError(reason instanceof Error ? reason.message : "Could not load your events.");
+    }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []));
+  const event = events.find((item) => item.id === selectedId);
+  useFocusEffect(useCallback(() => {
+    let active = true;
+    if (!selectedId) {
+      setTasks([]);
+      setGuests([]);
+      return () => { active = false; };
+    }
+    Promise.all([getTasks(selectedId), getGuests(selectedId)]).then(([nextTasks, nextGuests]) => {
+      if (active) { setTasks(nextTasks.tasks); setGuests(nextGuests); }
+    }).catch((reason: unknown) => {
+      if (active) setError(reason instanceof Error ? reason.message : "Could not load event details.");
+    });
+    return () => { active = false; };
+  }, [selectedId]));
+  const attending = guests.filter((guest) => guest.rsvp_status === "attending").length;
+  const declined = guests.filter((guest) => guest.rsvp_status === "declined").length;
+  const maybe = guests.filter((guest) => guest.rsvp_status === "maybe").length;
+  const awaiting = guests.filter((guest) => guest.rsvp_status === "pending").length;
+  const completedTasks = tasks.filter((task) => task.status === "complete").length;
   return (
     <DashboardLayout active="Events">
       <GatherBrand />
       <View style={styles.overview}>
-        <Text style={styles.title} accessibilityRole="header">My Event</Text>
-        <Text style={styles.whiteDetail}>Saturday, December 5 • 5:00 PM</Text>
-        <Text style={styles.eventName}>{event.name}</Text>
-        <Text style={styles.whiteDetail}>Birthday Celebration • 28 days to go</Text>
-        <Text style={styles.preview}>Sample event • Countdown based on November 7, 2026</Text>
-        {event.imageUri && <EventImage key={event.imageUri} uri={event.imageUri} />}
-
-        <ProgressCards />
-
-        <View style={styles.metrics}>
-          <View style={[styles.card, styles.metric, darkMode && styles.darkPanel]}>
-            <Text style={[styles.detail, darkMode && styles.darkText]}>Budget remaining</Text>
-            <Text style={[styles.metricValue, darkMode && styles.darkText]}>$650.00</Text>
-            <Text style={[styles.small, darkMode && styles.darkText]}>of $1,000.00</Text>
+        <Text style={styles.title} accessibilityRole="header">My Events</Text>
+        {events.length > 0 && <EventSelector events={events} selectedId={selectedId} onSelect={setSelectedId} label="Select an event" />}
+        {loading && <Text style={styles.whiteDetail}>Loading your events...</Text>}
+        {!!error && <Text style={styles.error} accessibilityRole="alert">{error}</Text>}
+        {!loading && events.length === 0 && !error && <Text style={styles.whiteDetail}>You haven&apos;t created an event yet.</Text>}
+        {event && <>
+          <Text style={styles.eventName}>{event.name}</Text>
+          <Text style={styles.whiteDetail}>{new Date(event.start_time).toLocaleString([], { dateStyle: "full", timeStyle: "short" })}</Text>
+          <Text style={styles.whiteDetail}>{event.event_type}</Text>
+          {event.address && <Text style={styles.whiteDetail}>{event.address}</Text>}
+          <View style={[styles.card, darkMode && styles.darkPanel]}>
+            <Text style={[styles.cardTitle, darkMode && styles.darkText]}>Guest Responses</Text>
+            <Text style={[styles.detail, darkMode && styles.darkText]}>{attending} attending · {declined} declined · {maybe} maybe · {awaiting} awaiting</Text>
+            <Text style={[styles.detail, darkMode && styles.darkText]}>RSVP deadline: {event.rsvp_deadline ? new Date(event.rsvp_deadline).toLocaleDateString() : "Not set"}</Text>
+            <PageLink label="View guest list" href={{ pathname: "/guest-list", params: { eventId: event.id } }} />
           </View>
-          <View style={[styles.card, styles.metric, darkMode && styles.darkPanel]}>
-            <Text style={[styles.detail, darkMode && styles.darkText]}>Next Milestone</Text>
-            <Text style={[styles.metricValue, darkMode && styles.darkText]}>Nov 21</Text>
-            <Text style={[styles.small, darkMode && styles.darkText]}>RSVP Deadline</Text>
+          <View style={[styles.card, darkMode && styles.darkPanel]}>
+            <Text style={[styles.cardTitle, darkMode && styles.darkText]}>Planning progress</Text>
+            <Text style={[styles.detail, darkMode && styles.darkText]}>{completedTasks} of {tasks.length} tasks completed</Text>
+            <PageLink label="View planning tasks" href={{ pathname: "/tasks", params: { eventId: event.id } }} />
           </View>
-        </View>
-
-        {aiSuggestions && <View style={[styles.card, darkMode && styles.darkPanel]}>
-          <View style={styles.insightHeader}>
-            <View style={styles.galaFrame}><Image source={gala} style={styles.gala} resizeMode="contain" accessible={false} /></View>
-            <Text style={[styles.cardTitle, darkMode && styles.darkText]}>Gala&apos;s Insights</Text>
+          <View style={styles.metrics}>
+            <View style={[styles.card, styles.metric, darkMode && styles.darkPanel]}>
+              <Text style={[styles.detail, darkMode && styles.darkText]}>Budget</Text>
+              <Text style={[styles.metricValue, darkMode && styles.darkText]}>{event.total_budget === null ? "Not set" : `$${Number(event.total_budget).toFixed(2)}`}</Text>
+            </View>
+            <View style={[styles.card, styles.metric, darkMode && styles.darkPanel]}>
+              <Text style={[styles.detail, darkMode && styles.darkText]}>Expected guests</Text>
+              <Text style={[styles.metricValue, darkMode && styles.darkText]}>{event.expected_headcount ?? "Not set"}</Text>
+            </View>
           </View>
-          <Text style={[styles.detail, darkMode && styles.darkText]}>{awaiting ? `You're making great progress! ${awaiting} ${awaiting === 1 ? "guest hasn't" : "guests haven't"} responded yet. It might be a good time to send a friendly RSVP reminder.` : "Everyone in this sample guest list has a response."}</Text>
-          <PageLink label="Ask Gala" href="/gala" />
-        </View>}
+        </>}
       </View>
       <Pressable style={styles.primary} accessibilityRole="link" onPress={() => router.push({ pathname: "/create-event/[step]", params: { step: "1" } })}>
         <Text style={styles.primaryText}>Create New Event</Text>
       </Pressable>
-      <Pressable style={[styles.secondary, darkMode && styles.darkPanel]} accessibilityRole="link" onPress={() => router.push("/edit-event")}>
+      {event && <Pressable style={[styles.secondary, darkMode && styles.darkPanel]} accessibilityRole="link" onPress={() => router.push({ pathname: "/edit-event", params: { eventId: event.id } })}>
         <Text style={[styles.secondaryText, darkMode && styles.darkAccent]}>Edit Event</Text>
-      </Pressable>
+      </Pressable>}
     </DashboardLayout>
   );
 }
@@ -121,6 +114,7 @@ const styles = StyleSheet.create({
   darkPanel: { backgroundColor: darkPalette.panel },
   darkText: { color: darkPalette.text },
   darkAccent: { color: darkPalette.accent },
+  error: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 13 },
   overview: { backgroundColor: "#c65d58", borderRadius: 32, padding: 18, gap: 8 },
   title: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 26, textAlign: "center" },
   eventImage: { width: "100%", height: 150, borderRadius: 16 },

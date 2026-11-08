@@ -27,7 +27,7 @@ app.use("/api/guests", guestRoutes);                          // host only
 app.use("/api/invitation-settings", invitationSettingsRoutes); // host only
 app.use("/api/tasks", taskRoutes);                            // host only
 app.use("/api/rsvp", rsvpRoutes);                             // PUBLIC: guests answering an invitation (the token is the credential)
-// app.use("/api/gala", galaRoutes);
+app.use("/api/gala", galaRoutes);                             // host only: authenticated event-planning assistance
 
 // After all the routes: JSON errors instead of HTML error pages
 app.use((req, res) => {
@@ -40,6 +40,5 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 // Last, so everything above is ready before the first request arrives
-const PORT = Number(process.env.PORT) || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log(`Server listening on ${PORT}`));
-
+const PORT = Number(process.env.PORT) || 56552;
+app.listen(PORT, '192.168.1.208', () => console.log(`Server listening on ${PORT}`));

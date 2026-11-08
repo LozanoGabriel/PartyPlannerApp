@@ -9,7 +9,12 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "googleServicesFile": "./GoogleService-Info.plist",
-      "bundleIdentifier": "com.partyplanner.partyplannerapp"
+      "bundleIdentifier": "com.partyplanner.partyplannerapp",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -45,7 +50,8 @@
         "expo-build-properties",
         {
           "android": {
-            "cmakeVersion": "4.1.2"
+            "cmakeVersion": "4.1.2",
+            "usesCleartextTraffic": true
           },
           "ios": {
             "useFrameworks": "dynamic"

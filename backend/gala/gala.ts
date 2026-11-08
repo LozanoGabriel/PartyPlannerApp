@@ -273,17 +273,20 @@ async function runAgent(
 
 export async function consultGala(
   requestedContext: eventCreationSteps,
-  userPrompt: string,
   eventDetails: unknown,
+  userPrompt?: string,
+  history: { context: string; userPrompt?: string; assistantResponse: string }[] = [],
 ): Promise<Record<string, unknown>> {
   const apiKey = process.env.SWARMS_API_KEY;
   if (!apiKey) throw new Error("SWARMS_API_KEY is not set.");
 
-  const context =
-    requestedContext === "Prompt"
-      ? await determineContext(userPrompt)
-      : requestedContext;
+  const prompt = userPrompt?.trim();
+  const context = requestedContext === "Prompt" && prompt
+    ? await determineContext(prompt)
+    : requestedContext;
   const currentTask = GALA_TASKS[context];
+  const userRequest = prompt || "No additional request was provided. Follow the current Gala task using the available event details.";
+  const conversationHistory = history.slice(-8);
   const responseTool = JSON.parse(
     JSON.stringify(RESPONSE_TOOLS[context]),
   ) as ResponseTool;
@@ -301,7 +304,7 @@ export async function consultGala(
   const discussion: { agent_name: string; message: string }[] = [];
 
   for (const specialist of specialists) {
-    const task = `Discuss this event-planning request with the specialists who have already contributed. Respond with your own relevant advice and explicitly build on at least one earlier point when there is one. Do not write the final answer.
+    const task = `Briefly discuss this event-planning request with the specialists who have already contributed. Add only one or two directly useful points, build on earlier ideas when relevant, and do not write the final answer.
 
 Current Gala task:
 ${currentTask}
@@ -313,7 +316,10 @@ Event details:
 ${JSON.stringify(eventDetails, null, 2)}
 
 User's request:
-${userPrompt}
+${userRequest}
+
+Previous conversation with the user:
+${JSON.stringify(conversationHistory, null, 2)}
 
 Earlier specialists' messages:
 ${JSON.stringify(discussion, null, 2)}`;
@@ -323,7 +329,7 @@ ${JSON.stringify(discussion, null, 2)}`;
     console.log(`\n--- ${specialist.agent_name} ---\n${message}\n`);
   }
 
-  const finalizerTask = `Write the final response for the user using the specialist discussion below.
+  const finalizerTask = `Write a concise final response for the user using the specialist discussion below. Keep the english_response to at most two short sentences and 45 words. Do not repeat the structured suggestions in prose; avoid preambles and extra explanation. Limit suggestion arrays to at most three brief, relevant items.
 
 Current Gala task:
 ${currentTask}
@@ -335,7 +341,10 @@ Event details:
 ${JSON.stringify(eventDetails, null, 2)}
 
 User's request:
-${userPrompt}
+${userRequest}
+
+Previous conversation with the user:
+${JSON.stringify(conversationHistory, null, 2)}
 
 Specialist discussion:
 ${JSON.stringify(discussion, null, 2)}
@@ -350,7 +359,7 @@ Call create_gala_response exactly once.`
         description:
           "Synthesizes specialist discussion into the final structured response.",
         system_prompt:
-          "You are Gala, the sole final responder. Use the event details, user's request, and the specialist discussion. You must answer by calling create_gala_response; do not answer with plain text.",
+          "You are Gala, the sole final responder. Be concise: english_response must be at most two short sentences and 45 words. Avoid preambles and do not repeat structured suggestions in prose. Return no more than three brief items in any suggestion array. Use the event details, user's request, prior conversation, and specialist discussion. You must answer by calling create_gala_response; do not answer with plain text.",
         model_name: MODEL_NAME,
         max_loops: 1,
         tools_list_dictionary: [responseTool],

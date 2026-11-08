@@ -108,6 +108,20 @@ async function assertHostOwnsGuest(hostId: string, guestId: string) {
   if (!data) throw new RSVPerror("Guest not found", 404);
 }
 
+export async function getGuestInviteLink(hostId: string, guestId: string) {
+  await assertHostOwnsGuest(hostId, guestId);
+
+  const { data, error } = await supabase
+    .from("guests")
+    .select("event_id, token")
+    .eq("id", guestId)
+    .maybeSingle();
+
+  if (error) throw new RSVPerror(`Failed to generate invitation link: ${error.message}`, 500);
+  if (!data) throw new RSVPerror("Guest not found", 404);
+  return buildInviteLink(data.event_id, data.token);
+}
+
 // ---------- the guest list ----------
 // There is no createGuestList(): an event with no guest rows IS the empty guest list.
 // The expected headcount is saved on the event by createEvent().

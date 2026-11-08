@@ -18,15 +18,15 @@ function handleError(res: Response, err: unknown, fallback: string) {
 // List all the tasks for an event
 router.get("/:eventId", async (req, res) => {
     try {
-        const tasks = await getTasksFromSupabase(res.locals.userId, req.params.eventId)
-        return res.status(200).json({ tasks })
+        const result = await getTasksFromSupabase(res.locals.userId, req.params.eventId)
+        return res.status(200).json(result)
     } catch (err) {
         return handleError(res, err, "Could not load tasks")
     }
 })
 
-// Create a task. Only title is required.
-// Body: { taskData: { title, dueDate?: "2026-12-01", status?, pillar?, assignedGuestId? } }
+// Create a task. Title and pillar are required.
+// Body: { taskData: { title, pillar, dueDate?: "2026-12-01", status?, assignedGuestId? } }
 router.post("/:eventId", async (req, res) => {
     try {
         if (!req.body?.taskData) throw new RSVPerror("taskData is required", 400)
