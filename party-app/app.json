@@ -62,6 +62,13 @@
         "@react-native-firebase/app",
         {}
       ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow gather to use the microphone for dictating messages to Gala.",
+          "speechRecognitionPermission": "Allow gather to transcribe your speech into messages to Gala."
+        }
+      ],
       "@react-native-community/datetimepicker"
     ],
     "experiments": {

@@ -4,7 +4,7 @@ import { NanumPenScript_400Regular } from "@expo-google-fonts/nanum-pen-script/4
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFonts } from "expo-font";
 import { Href, router, Stack } from "expo-router";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, RefObject, useEffect } from "react";
 import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -17,13 +17,15 @@ const links: { label: NavPage; href: Href; icon: "home-outline" | "calendar-outl
   { label: "Gala", href: "/gala", icon: null },
 ];
 
-export function DashboardLayout({ children, active, showNavigation = true, compactContent = false, onNavigate, overlay }: {
+export function DashboardLayout({ children, active, showNavigation = true, compactContent = false, onNavigate, overlay, scrollRef, onContentSizeChange }: {
   children: ReactNode;
   active?: NavPage;
   showNavigation?: boolean;
   compactContent?: boolean;
   onNavigate?: (href: Href) => void;
   overlay?: ReactNode;
+  scrollRef?: RefObject<ScrollView | null>;
+  onContentSizeChange?: (width: number, height: number) => void;
 }) {
   const [loaded, error] = useFonts({
     DMSans_400Regular,
@@ -50,7 +52,7 @@ export function DashboardLayout({ children, active, showNavigation = true, compa
       ) : (
         <>
           <KeyboardAvoidingView style={layout.scrollArea} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-            <ScrollView contentContainerStyle={[layout.content, compactContent && layout.compactContent]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <ScrollView ref={scrollRef} onContentSizeChange={onContentSizeChange} contentContainerStyle={[layout.content, compactContent && layout.compactContent]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {children}
             </ScrollView>
           </KeyboardAvoidingView>
