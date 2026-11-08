@@ -31,6 +31,8 @@ The initial `/` route redirects to `/login`. Sign-in and sign-up open an unauthe
 
 The terms and privacy notice is draft placeholder text, not an actual policy or recorded consent. Replace it with approved terms describing the real data and AI practices before enabling registration.
 
+The dashboard, its event and milestone data, and the Events, Tasks, Gala, and Settings pages are previews only. The sample countdowns are based on November 7, 2026; event creation is not yet available.
+
 For an Android development build, run `npx expo start --dev-client` and open the installed development app. After changing bundler dependencies, restart Metro with `npx expo start --dev-client --clear`.
 
 `@expo/ui` is pinned to the Expo SDK 53 alpha release: later canary builds can reference native APIs unavailable in this SDK. After changing native dependencies, rebuild and reinstall the development app with `npx expo run:android`.

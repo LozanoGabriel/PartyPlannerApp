@@ -6,6 +6,7 @@ import { AuthField, AuthPage, isValidEmail, styles } from "../../components/auth
 const logo = require("../../../assets/images/gather_frame_3.png");
 
 export default function SignUpScreen() {
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -15,6 +16,7 @@ export default function SignUpScreen() {
   const { width } = useWindowDimensions();
   const logoSize = Math.min(width, 480);
 
+  const nameError = submitted && !fullName.trim() ? "Enter your full name." : undefined;
   const emailError = submitted && !isValidEmail(email) ? "Enter a valid email address." : undefined;
   const passwordError = submitted && !password ? "Enter your password." : undefined;
   const confirmError = submitted && (!confirmPassword || confirmPassword !== password)
@@ -23,7 +25,7 @@ export default function SignUpScreen() {
 
   function submit() {
     setSubmitted(true);
-    if (isValidEmail(email) && password && confirmPassword === password && agreed) {
+    if (fullName.trim() && isValidEmail(email) && password && confirmPassword === password && agreed) {
       router.push("/dashboard");
     }
   }
@@ -40,6 +42,8 @@ export default function SignUpScreen() {
       </View>
       <View style={styles.card}>
         <Text style={local.heading}>Create an account</Text>
+        <AuthField label="Full Name" value={fullName} onChangeText={setFullName} error={nameError}
+          autoCapitalize="words" autoComplete="name" autoCorrect={false} placeholder="Enter your full name" />
         <AuthField label="Email" value={email} onChangeText={setEmail} error={emailError}
           autoCapitalize="none" autoComplete="email" autoCorrect={false} keyboardType="email-address"
           placeholder="Enter your email" />
