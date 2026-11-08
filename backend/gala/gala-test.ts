@@ -1,210 +1,335 @@
+import dotenv from "dotenv";
 
-import dotenv from "dotenv"
+dotenv.config();
 
-dotenv.config()
-type Agent = {
+type EventDetails = {
+  name: string;
+  description: string;
+  eventType: string;
+  startTime: string;
+  endTime: string;
+};
+
+type PlannedTask = {
+  task_name: string;
+  task_description: string;
+};
+
+type GalaResponse = {
+  english_response: string;
+  tasks: PlannedTask[];
+};
+
+type AgentConfig = {
   agent_name: string;
   description: string;
   system_prompt: string;
   model_name: string;
   max_loops: number;
-  llm_args?: any;
+  tools_list_dictionary?: object[];
 };
 
-type SwarmCompletionRequest = {
-  name: string;
-  description: string;
-  swarm_type: string;
-  task: string;
-  agents: Agent[];
-  max_loops: number;
+type SwarmsResponse = Record<string, unknown>;
+
+const API_URL = "https://api.swarms.world/v1";
+const MODEL_NAME = "claude-haiku-4-5";
+const userPrompt =
+  "I want to make my celebration look super pretty. What should I do in order to do that?";
+
+const now = new Date();
+const eventDetails: EventDetails = {
+  name: "Grand 21st Celebration",
+  description: "Let's celebrate!",
+  eventType: "Celebration",
+  startTime: now.toISOString(),
+  endTime: new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(),
 };
 
-const currentDateTime = new Date();
-const endDateTime  = new Date(currentDateTime)
-endDateTime.setHours(currentDateTime.getHours() + 2)
-
-const mockevent = {
-    name: "Grand 21st Celebration",
-    description: "Let's celebrate!",
-    eventType : "Celebration",
-    startTime : currentDateTime.toUTCString(),
-    endTime : endDateTime.toUTCString(),
-}
-
-const currentTask = "The current task of the user is to make a list of tasks that the event may require to be done before the occurance of the event."
-
-const aiResponseLimitation = "You are limited to responding in two ways. First, you must give a human response for the user to read, which is the english_response field. Then, the tasks field is for you to create tasks that align with the users' goals. Preferably, make 5."
-
-const userPrompt = `The user also sent their own prompt. Consider it as you discuss. User prompt: "I want to make my celebration look super pretty. What should I do in order to do that?" END OF USER PROMPT.`
-const eventDetails = JSON.stringify(mockevent)
-const payload: SwarmCompletionRequest = {
-  "name": "Gala Consult",
-  "description": "Gala's agents",
-  "swarm_type": "GroupChat",
-  "task": `You are a team of agents whose task is to help the user with hosting an event.
-You will have a leader agent named Gala who will be in charge of compiling all the information you deliver to them, and make a suggestion to the user based on their current ask.
-Discuss amongst each other to structure the best response, considering the details of the event, and the user's current task which are described next.
-Here are the details of the event the user is planning over:
-${eventDetails}
-END EVENT DETAILS
-Here is the current task of the user, which is the information they will need from Gala's final response.
-${currentTask}
-END USER'S TASK
-${userPrompt}
-Here is the structure Gala *MUST* follow in her response to the user. Gala is otherwise free to communicate with the other agents normally.
-${aiResponseLimitation}
-`
-
-,
-  "agents": [
-    {
-      "agent_name": "Gala JSON interpreter",
-      "description": "You translate the leader's final output into a JSON format",
-      "system_prompt": "You are the leader's translator. You will listen to what Gala says, and what the response to the user will be. You absolutely MUST follow the structure detailed in the structure Gala must follow when deciding what information goes into what fields in the JSON file.",
-      "model_name": "claude-haiku-4-5",
-      "max_loops": 3,
-    llm_args: {
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-            name: "gala_response",
-            strict: true,
-            schema: {
-              type: "object",
-              properties: {
-                english_response: { type: "string" },
-                tasks: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      task_name: { type: "string" },
-                      task_description: { type: "string" }
-                    },
-                    required: ["task_name", "task_description"],
-                    additionalProperties: false
-                  }
-                }
+const responseTool = {
+  type: "function",
+  function: {
+    name: "create_gala_response",
+    description:
+      "Return the final user-facing response and an array of actionable event tasks.",
+    parameters: {
+      type: "object",
+      properties: {
+        english_response: {
+          type: "string",
+          description: "A concise, friendly response to the user's request.",
+        },
+        tasks: {
+          type: "array",
+          description:
+            "All relevant actionable tasks; choose the number needed and do not pad the list.",
+          items: {
+            type: "object",
+            properties: {
+              task_name: {
+                type: "string",
+                description: "A concise title for the task.",
               },
-              required: ["english_response", "tasks"],
-              additionalProperties: false
-            }
-        }
-      }
+              task_description: {
+                type: "string",
+                description: "Specific details for completing the task.",
+              },
+            },
+            required: ["task_name", "task_description"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["english_response", "tasks"],
+      additionalProperties: false,
     },
-    },
-    {
-      "agent_name": "Gala",
-      "description": "Leader Agent who decides what is delivered to the user",
-      "system_prompt": "You are the leader amongst all other agents. You are to listen to the other agents, compile all the information they deliver, consider their discussions and conclusions, conversate with them, task them, consider who to listen to more, then finally, you MUST follow the structure delivered in your task for the final response the user sees.",
-      "model_name": "claude-haiku-4-5",
-      "max_loops": 2
-    },
-    {
-      "agent_name": "Wedding Planner",
-      "description": "Expert in planning weddings.",
-      "system_prompt": "You are an expert in planning weddings. You are to listen to the task given, consider the event details and if they are relevant to you, consider what information the user will need for their current task, research for relevant details to deliver to the conversation amongst the other agents, and consider the information from other agents to be useful for Gala.",
-      "model_name": "claude-haiku-4-5",
-      "max_loops": 2
-    },
-    {
-      "agent_name": "Professional Decorator",
-      "description": "Expert in decorating events.",
-      "system_prompt": "You are an expert in decorating events. You are to listen to the task given, consider the event details and if they are relevant to you, consider what information the user will need for their current task, research for relevant details to deliver to the conversation amongst the other agents, and consider the information from other agents to be useful for Gala.",
-      "model_name": "claude-haiku-4-5",
-      "max_loops": 2
-    },
-    {
-      "agent_name": "Florist",
-      "description": "Expert Florist",
-      "system_prompt": "You are an expert Florist. You are to listen to the task given, consider the event details and if they are relevant to you, consider what information the user will need for their current task, research for relevant details to deliver to the conversation amongst the other agents, and consider the information from other agents to be useful for Gala.",
-      "model_name": "claude-haiku-4-5",
-      "max_loops": 2
-    },
-    {
-      "agent_name": "Permit Coordinator",
-      "description": "Professional Permit Coordinator",
-      "system_prompt": "You are a expert Permit Coordinator. You are to listen to the task given, consider the event details and if they are relevant to you, consider what information the user will need for their current task, research for relevant details to deliver to the conversation amongst the other agents, and consider the information from other agents to be useful for Gala.",
-      "model_name": "claude-haiku-4-5",
-      "max_loops": 2
-    },
-    {
-      "agent_name": "Event Coordinator",
-      "description": "Professional Event Coordinator",
-      "system_prompt": "You are a expert Event Coordinator. You are to listen to the task given, consider the event details and if they are relevant to you, consider what information the user will need for their current task, research for relevant details to deliver to the conversation amongst the other agents, and consider the information from other agents to be useful for Gala. As the event coordiator, you are in charge of making sure all the other agents line up well in terms of time when considering the event, amongst all the other tasks a Event Coordinator should handle.",
-      "model_name": "claude-haiku-4-5",
-      "max_loops": 2
-    },
-    {
-      "agent_name": "Event Photogropher",
-      "description": "Professional Event Photogropher",
-      "system_prompt": "You are a expert Event Photogropher. You are to listen to the task given, consider the event details and if they are relevant to you, consider what information the user will need for their current task, research for relevant details to deliver to the conversation amongst the other agents, and consider the information from other agents to be useful for Gala.",
-      "model_name": "claude-haiku-4-5",
-      "max_loops": 2
-    },
-    {
-      "agent_name": "Event Talent Booking Agent",
-      "description": "Professional Event Talent Booking Agent",
-      "system_prompt": "You are a professional Event Talent Booking Agent. You are to listen to the task given, consider the event details and if they are relevant to you, consider what information the user will need for their current task, research for relevant details to deliver to the conversation amongst the other agents, and consider the information from other agents to be useful for Gala.",
-      "model_name": "claude-haiku-4-5",
-      "max_loops": 2
-    },
-    {
-      "agent_name": "Event Caterer",
-      "description": "Professional Event Caterer",
-      "system_prompt": "You are a professional Event Caterer. You are to listen to the task given, consider the event details and if they are relevant to you, consider what information the user will need for their current task, research for relevant details to deliver to the conversation amongst the other agents, and consider the information from other agents to be useful for Gala.",
-      "model_name": "claude-haiku-4-5",
-      "max_loops": 2
-    },
-    {
-      "agent_name": "Event Bartender",
-      "description": "Professional Event Bartender",
-      "system_prompt": "You are a Professional Event Bartender. You are to listen to the task given, consider the event details and if they are relevant to you, consider what information the user will need for their current task, research for relevant details to deliver to the conversation amongst the other agents, and consider the information from other agents to be useful for Gala.",
-      "model_name": "claude-haiku-4-5",
-      "max_loops": 2
-    },
-    {
-      "agent_name": "Print Shop owner",
-      "description": "Professional Print Shop owner",
-      "system_prompt": "You are a Professional Print Shop owner. You are to listen to the task given, consider the event details and if they are relevant to you, consider what information the user will need for their current task, research for relevant details to deliver to the conversation amongst the other agents, and consider the information from other agents to be useful for Gala.",
-      "model_name": "claude-haiku-4-5",
-      "max_loops": 2
-    },
-    {
-      "agent_name": "Non-AI graphic designer",
-      "description": "Professional Non-AI graphic designer",
-      "system_prompt": "You are a Professional Non-AI graphic designer. You are to listen to the task given, consider the event details and if they are relevant to you, consider what information the user will need for their current task, research for relevant details to deliver to the conversation amongst the other agents, and consider the information from other agents to be useful for Gala. You are not to use AI-Generated graphic desings. Find real Designers.",
-      "model_name": "claude-haiku-4-5",
-      "max_loops": 2
-    },
-    {
-      "agent_name": "Therapist",
-      "description": "Professional Therapist",
-      "system_prompt": "You are a Professional Therapist. You are to listen to the task given, consider the event details and if they are relevant to you, consider what information the user will need for their current task, research for relevant details to deliver to the conversation amongst the other agents, and consider the information from other agents to be useful for Gala, and firstmost, to make sure that the details being discussed to be delivered aren't too stressful for the user, as they are the event planner.",
-      "model_name": "claude-haiku-4-5",
-      "max_loops": 2
-    },
-
-
-
-  ],
-  "max_loops": 2
+  },
 };
 
-const response = await fetch("https://api.swarms.world/v1/swarm/completions", {
-  method: "POST",
-  headers: {
-    "x-api-key": process.env.SWARMS_API_KEY!,
-    "Content-Type": "application/json",
+const specialists: AgentConfig[] = [
+  {
+    agent_name: "Event Planner",
+    description: "Provides practical event-planning recommendations.",
+    system_prompt:
+      "You are an event planner in a specialist discussion. Give practical ideas that directly address the user's request. Read and build on the earlier specialists' messages; point out useful additions or disagreements. Do not write the final user response.",
+    model_name: MODEL_NAME,
+    max_loops: 1,
   },
-  body: JSON.stringify(payload),
-});
+  {
+    agent_name: "Event Decorator",
+    description: "Specializes in decor, colors, lighting, and atmosphere.",
+    system_prompt:
+      "You are an event decorator in a specialist discussion. Focus on the visual style, decor, colors, lighting, and atmosphere. Read and build on the earlier specialists' messages; point out useful additions or disagreements. Do not write the final user response.",
+    model_name: MODEL_NAME,
+    max_loops: 1,
+  },
+  {
+    agent_name: "Florist",
+    description: "Specializes in flowers and floral styling.",
+    system_prompt:
+      "You are a florist in a specialist discussion. Suggest suitable flowers and arrangements, considering the event and practical constraints. Read and build on the earlier specialists' messages; point out useful additions or disagreements. Do not write the final user response.",
+    model_name: MODEL_NAME,
+    max_loops: 1,
+  },
+  {
+    agent_name: "Event Coordinator",
+    description: "Checks timing, dependencies, and feasibility.",
+    system_prompt:
+      "You are an event coordinator in a specialist discussion. Assess the earlier recommendations for timing, dependencies, and feasibility, and add practical coordination considerations. Do not write the final user response.",
+    model_name: MODEL_NAME,
+    max_loops: 1,
+  },
+];
 
-const responseBody = await response.text();
-if (!response.ok) {
-  throw new Error(`HTTP ${response.status}: ${responseBody}`);
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-const data: unknown = JSON.parse(responseBody);
-console.log(data);
+async function postJson(
+  path: string,
+  body: unknown,
+  apiKey: string,
+): Promise<SwarmsResponse> {
+  const response = await fetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: {
+      "x-api-key": apiKey,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const responseBody = await response.text();
+  if (!response.ok) {
+    throw new Error(
+      `Swarms ${path} failed with HTTP ${response.status}: ${responseBody}`,
+    );
+  }
+
+  let parsedBody: unknown;
+  try {
+    parsedBody = JSON.parse(responseBody);
+  } catch (error) {
+    throw new Error(`Swarms ${path} returned invalid JSON.`, { cause: error });
+  }
+
+  if (!isRecord(parsedBody)) {
+    throw new Error(`Swarms ${path} returned an unexpected response shape.`);
+  }
+  return parsedBody;
+}
+
+function outputToText(response: SwarmsResponse, agentName: string): string {
+  const output = response.outputs;
+  if (typeof output === "string" && output.trim()) return output.trim();
+  if (Array.isArray(output) && output.length > 0) {
+    return JSON.stringify(output);
+  }
+  if (isRecord(output) && Object.keys(output).length > 0) {
+    return JSON.stringify(output);
+  }
+  throw new Error(`${agentName} returned no output.`);
+}
+
+function findFunctionCall(
+  value: unknown,
+  depth = 0,
+): { arguments: unknown } | undefined {
+  if (depth > 8) return undefined;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const call = findFunctionCall(item, depth + 1);
+      if (call) return call;
+    }
+    return undefined;
+  }
+  if (!isRecord(value)) return undefined;
+
+  const fn = value.function;
+  if (
+    isRecord(fn) &&
+    fn.name === "create_gala_response" &&
+    "arguments" in fn
+  ) {
+    return { arguments: fn.arguments };
+  }
+
+  for (const child of Object.values(value)) {
+    const call = findFunctionCall(child, depth + 1);
+    if (call) return call;
+  }
+  return undefined;
+}
+
+function parseGalaResponse(value: unknown): GalaResponse {
+  let parsed = value;
+  if (typeof parsed === "string") {
+    try {
+      parsed = JSON.parse(parsed) as unknown;
+    } catch (error) {
+      throw new Error("Gala returned malformed function arguments.", {
+        cause: error,
+      });
+    }
+  }
+
+  if (!isRecord(parsed) || typeof parsed.english_response !== "string") {
+    throw new Error("Gala's response is missing english_response.");
+  }
+  if (!Array.isArray(parsed.tasks)) {
+    throw new Error("Gala's tasks field must be an array.");
+  }
+
+  const tasks = parsed.tasks.map((task, index): PlannedTask => {
+    if (
+      !isRecord(task) ||
+      typeof task.task_name !== "string" ||
+      typeof task.task_description !== "string"
+    ) {
+      throw new Error(`Gala returned an invalid task at index ${index}.`);
+    }
+    return {
+      task_name: task.task_name,
+      task_description: task.task_description,
+    };
+  });
+
+  return { english_response: parsed.english_response, tasks };
+}
+
+async function runAgent(
+  agent: AgentConfig,
+  task: string,
+  apiKey: string,
+): Promise<string> {
+  const response = await postJson(
+    "/agent/completions",
+    {
+      agent_config: agent,
+      task,
+    },
+    apiKey,
+  );
+  if (response.success === false) {
+    throw new Error(`${agent.agent_name} completion was not successful.`);
+  }
+  return outputToText(response, agent.agent_name);
+}
+
+async function main(): Promise<void> {
+  const apiKey = process.env.SWARMS_API_KEY;
+  if (!apiKey) throw new Error("SWARMS_API_KEY is not set.");
+
+  const discussion: { agent_name: string; message: string }[] = [];
+
+  for (const specialist of specialists) {
+    const task = `Discuss this event-planning request with the specialists who have already contributed. Respond with your own relevant advice and explicitly build on at least one earlier point when there is one. Do not write the final answer.
+
+Event details:
+${JSON.stringify(eventDetails, null, 2)}
+
+User's request:
+${userPrompt}
+
+Earlier specialists' messages:
+${JSON.stringify(discussion, null, 2)}`;
+
+    const message = await runAgent(specialist, task, apiKey);
+    discussion.push({ agent_name: specialist.agent_name, message });
+    console.log(`\n--- ${specialist.agent_name} ---\n${message}\n`);
+  }
+
+  if (discussion.length < 2) {
+    throw new Error(
+      "The final agent was not called because fewer than two specialists contributed.",
+    );
+  }
+
+  const finalizerTask = `Write the final response for the user using the specialist discussion below.
+
+Event details:
+${JSON.stringify(eventDetails, null, 2)}
+
+User's request:
+${userPrompt}
+
+Specialist discussion:
+${JSON.stringify(discussion, null, 2)}
+
+Call create_gala_response exactly once. Make the english_response helpful and concise. Return all relevant actionable tasks in the tasks array; choose the number that fits the request rather than forcing a fixed count.`;
+
+  const finalizerResponse = await postJson(
+    "/agent/completions",
+    {
+      agent_config: {
+        agent_name: "Gala Final Response",
+        description:
+          "Synthesizes specialist discussion into the final structured response.",
+        system_prompt:
+          "You are Gala, the sole final responder. Use the event details, user's request, and the specialist discussion. You must answer by calling create_gala_response; do not answer with plain text.",
+        model_name: MODEL_NAME,
+        max_loops: 1,
+        tools_list_dictionary: [responseTool],
+      } satisfies AgentConfig,
+      task: finalizerTask,
+    },
+    apiKey,
+  );
+
+  if (finalizerResponse.success === false) {
+    throw new Error("Gala's final completion was not successful.");
+  }
+  const functionCall = findFunctionCall(finalizerResponse.outputs);
+  if (!functionCall) {
+    throw new Error(
+      `Gala did not call create_gala_response. Output: ${JSON.stringify(finalizerResponse.outputs)}`,
+    );
+  }
+
+  const galaResponse = parseGalaResponse(functionCall.arguments);
+  console.log(JSON.stringify(galaResponse, null, 2));
+}
+
+main().catch((error: unknown) => {
+  console.error("Gala task generation failed:", error);
+  process.exitCode = 1;
+});
