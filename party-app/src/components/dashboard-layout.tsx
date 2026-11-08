@@ -10,12 +10,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAppPreferences } from "./app-preferences";
 
 const galaIcon = require("../../assets/images/navbar_gala_button.png");
-type NavPage = "Home" | "Events" | "Tasks" | "Gala";
-const links: { label: NavPage; href: Href; icon: "home-outline" | "calendar-outline" | "checkbox-outline" | null }[] = [
+type NavPage = "Home" | "Events" | "Tasks" | "Gala" | "Settings";
+const links: { label: NavPage; href: Href; icon: "home-outline" | "calendar-outline" | "checkbox-outline" | "settings-outline" | null }[] = [
   { label: "Home", href: "/dashboard", icon: "home-outline" },
   { label: "Events", href: "/events", icon: "calendar-outline" },
   { label: "Tasks", href: "/tasks", icon: "checkbox-outline" },
   { label: "Gala", href: "/gala", icon: null },
+  { label: "Settings", href: "/settings", icon: "settings-outline" },
 ];
 
 export function DashboardLayout({ children, active, showNavigation = true, compactContent = false, onNavigate, overlay, scrollRef, onContentSizeChange }: {

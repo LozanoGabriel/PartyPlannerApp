@@ -40,7 +40,7 @@ export default function ProfileScreen() {
 
   return (
     <SettingsLayout title="Profile" onNavigate={guard.navigate} onBack={() => guard.navigate("/settings")}>
-      <Text style={styles.notice}>Preview only. Do not enter real credentials. Profile details are kept only for this session; passwords are not saved.</Text>
+      <Text style={styles.notice}>Do not enter real credentials. Profile details are kept only for this session; passwords are not saved.</Text>
       {field("name", "Full Name", "Enter a name")}
       {field("phone", "Phone Number", "Enter a phone number")}
       {field("email", "Email Address", "Enter an email address")}
@@ -67,7 +67,7 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  notice: { color: "#ffffff", backgroundColor: "#333333", borderRadius: 10, padding: 10, fontFamily: "DMSans_400Regular", fontSize: 13, lineHeight: 18 },
+  notice: { color: "#ffffff", backgroundColor: "#333333", borderRadius: 10, padding: 10, fontFamily: "DMSans_400Regular", fontSize: 14, lineHeight: 20 },
   field: { gap: 6 },
   label: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 16 },
   input: { minHeight: 48, borderRadius: 10, backgroundColor: "#ffffff", color: "#1e1e1e", paddingHorizontal: 12, fontFamily: "DMSans_400Regular", fontSize: 16 },

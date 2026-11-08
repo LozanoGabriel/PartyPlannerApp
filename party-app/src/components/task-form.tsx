@@ -99,7 +99,7 @@ export function TaskForm({ mode, initialTask }: { mode: "create" | "edit"; initi
       <GatherBrand />
       <View style={styles.card}>
         <Text style={styles.title} accessibilityRole="header">{mode === "create" ? "Create a task" : "Edit Tasks"}</Text>
-        <Text style={styles.notice}>Preview only. Tasks are not saved to a server.</Text>
+        <Text style={styles.notice}>Tasks are not saved to a server.</Text>
         {mode === "edit" && <>
           <Text style={styles.label}>Choose a task</Text>
           <Pressable accessibilityRole="button" accessibilityLabel="Choose a task" accessibilityState={{ expanded: taskMenu }} onPress={() => setTaskMenu(!taskMenu)} style={[styles.select, darkMode && styles.darkPanel]}>
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   darkAccent: { color: darkPalette.accent },
   card: { backgroundColor: "#c65d58", borderRadius: 32, padding: 20, gap: 12 },
   title: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 26, textAlign: "center" },
-  notice: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 13, textAlign: "center" },
+  notice: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 14, lineHeight: 20, textAlign: "center" },
   field: { gap: 6 },
   label: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 15 },
   input: { minHeight: 48, borderRadius: 10, backgroundColor: "#ffffff", color: "#1e1e1e", fontFamily: "DMSans_400Regular", fontSize: 16, paddingHorizontal: 12, paddingVertical: 10 },

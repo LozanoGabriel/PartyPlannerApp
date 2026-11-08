@@ -136,6 +136,7 @@ export default function SignUpScreen() {
             {isSubmitting ? "Please wait..." : "Continue with Google"}
           </Text>
         </Pressable>
+        <Text style={[styles.notice, darkMode && darkStyles.text]}>No account will be created.</Text>
         <Pressable accessibilityRole="link" onPress={() => router.replace("/login")}>
           <Text style={[styles.link, darkMode && darkStyles.text]}>Back to sign in</Text>
         </Pressable>

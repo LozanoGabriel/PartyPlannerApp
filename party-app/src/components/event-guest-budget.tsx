@@ -93,7 +93,7 @@ export function BudgetStep({ onBack, onContinue }: StepProps) {
           </Pressable>
         </View>
         {invalidManualBudget && <Text style={styles.error} accessibilityLiveRegion="polite">Enter a valid budget amount to continue.</Text>}
-        <Text style={styles.budgetNotice}>{aiSuggestions ? "Preview only: amounts are not saved and budget generation is not available yet." : "Preview only: amounts are not saved."}</Text>
+        <Text style={styles.budgetNotice}>{aiSuggestions ? "Amounts are not saved and budget generation is not available yet." : "Amounts are not saved."}</Text>
       </View>
       <EventFlowButtons onBack={onBack} onContinue={onContinue} disabled={invalidManualBudget} disabledHint="Enter a valid budget amount to continue." />
     </>
@@ -134,5 +134,5 @@ const styles = StyleSheet.create({
   galaFrame: { width: 48, height: 48, overflow: "hidden", alignItems: "center", justifyContent: "center" },
   gala: { width: 80, height: 80 },
   skip: { minHeight: 48, backgroundColor: "#ffa49f", borderRadius: 16, borderWidth: 2, borderColor: "transparent", alignItems: "center", justifyContent: "center", padding: 8 },
-  budgetNotice: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 12, textAlign: "center" },
+  budgetNotice: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 14, textAlign: "center" },
 });
