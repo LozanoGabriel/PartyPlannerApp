@@ -1,11 +1,7 @@
 //TODO: Change from mock data to true integration
-<<<<<<< Updated upstream
 import { supabase } from 
 import { EventDetails } from "../../interfaces/event-details"
-import { mockEventDetail, mockOk } from "../mock-data"
-=======
-import { mockEventDetails, mockGuestDetails, mockOk, mockTaskDetails, mockBudget } from "../mock-data"
->>>>>>> Stashed changes
+import { mockGuestDetails, mockOk, mockTaskDetails, mockBudget, mockEventDetails } from "../mock-data"
 
 
 //TODO : Implement
