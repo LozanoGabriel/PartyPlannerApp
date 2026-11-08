@@ -27,6 +27,8 @@ You can start developing by editing the files inside the **src/app** directory. 
 
 ## Login screen
 
+On startup, a short animation crossfades the four Gather frames before revealing the app. Reduced-motion settings skip the animation. Android and iOS use `lottie-react-native`; web uses the same frames with React Native animation because the SDK 53 Lottie web peer does not support React 19. Regenerate the Lottie asset with `node scripts/generate-splash-animation.cjs` after changing the frames. Rebuild the native app after adding Lottie; if native project directories already exist, apply the splash configuration with Expo prebuild and review the generated changes before rebuilding. Expo Go and development builds may not display the native splash exactly as a release build does.
+
 The initial `/` route redirects to `/login`. Sign-in and sign-up open an unauthenticated dashboard preview after local validation; they do not verify credentials or create accounts. Password reset does not send emails, and Google sign-in is unavailable. Connect these flows to the authentication backend before using them for real accounts.
 
 Unmatched routes show a custom not-found page; its back button returns to the previous in-app screen, or to the initial route when there is no navigation history. This page does not provide authentication or authorization.
