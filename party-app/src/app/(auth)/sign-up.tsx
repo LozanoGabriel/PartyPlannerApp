@@ -75,7 +75,7 @@ export default function SignUpScreen() {
         <Pressable style={[styles.button, darkMode && darkStyles.button]} accessibilityRole="button" onPress={submit}>
           <Text style={styles.buttonText}>Sign Up (preview)</Text>
         </Pressable>
-        <Text style={[styles.notice, darkMode && darkStyles.text]}>Preview only: no account will be created.</Text>
+        <Text style={[styles.notice, darkMode && darkStyles.text]}>No account will be created.</Text>
         <Pressable accessibilityRole="link" onPress={() => router.replace("/login")}>
           <Text style={[styles.link, darkMode && darkStyles.text]}>Back to sign in</Text>
         </Pressable>

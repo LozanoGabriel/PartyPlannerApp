@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { DashboardLayout } from "../components/dashboard-layout";
 import { GatherBrand } from "../components/gather-brand";
 import { useAppPreferences } from "../components/app-preferences";
+import { useNotificationPreview } from "../components/notification-preview";
 
 // Replace this preview switch with the real event list when the backend is connected.
 const showEmptyState = false;
@@ -15,18 +16,20 @@ const milestones = [
 
 export default function DashboardScreen() {
   const { darkMode } = useAppPreferences();
+  const { unreadCount } = useNotificationPreview();
   return (
     <DashboardLayout active="Home" compactContent>
       <View style={styles.dashboard}>
       <View style={styles.header}>
         <GatherBrand />
-        <Pressable accessibilityRole="link" accessibilityLabel="Settings" onPress={() => router.push("/settings")} style={styles.settings}>
-          <Ionicons name="settings-outline" size={28} color="#ffffff" />
+        <Pressable accessibilityRole="link" accessibilityLabel={unreadCount ? `Notifications, ${unreadCount} unread` : "Notifications, no unread notifications"} onPress={() => router.push("/notifications")} style={styles.settings}>
+          <Ionicons name={unreadCount ? "notifications" : "notifications-outline"} size={28} color="#ffffff" />
+          {unreadCount > 0 && <View style={styles.badge}><Text style={styles.badgeText}>{unreadCount > 99 ? "99+" : unreadCount}</Text></View>}
         </Pressable>
       </View>
       <Text style={styles.welcome} accessibilityRole="header">Welcome, Gabriel!</Text>
       <Text style={styles.heading}>Event Overview</Text>
-      <Text style={[styles.preview, darkMode && styles.darkPreview]}>Preview only: {showEmptyState ? "not signed in." : "sample data, not signed in."}</Text>
+      <Text style={[styles.preview, darkMode && styles.darkPreview]}>{showEmptyState ? "Not signed in." : "Sample data · Not signed in."}</Text>
 
       {showEmptyState ? (
         <View style={styles.card}>
@@ -74,8 +77,10 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   welcome: { color: "#ffffff", fontFamily: "NanumPenScript_400Regular", fontSize: 43, lineHeight: 52, textAlign: "center" },
   settings: { width: 48, height: 48, alignItems: "center", justifyContent: "center" },
+  badge: { position: "absolute", right: 0, top: 0, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 3, backgroundColor: "#a82525", alignItems: "center", justifyContent: "center" },
+  badgeText: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 11 },
   heading: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 22, textAlign: "center", marginTop: 2 },
-  preview: { color: "#533331", fontFamily: "DMSans_400Regular", fontSize: 12, textAlign: "center", marginTop: 2, marginBottom: 8 },
+  preview: { color: "#533331", fontFamily: "DMSans_400Regular", fontSize: 14, textAlign: "center", marginTop: 2, marginBottom: 8 },
   darkPreview: { color: "#ffffff" },
   card: { backgroundColor: "#c65d58", borderRadius: 36, paddingHorizontal: 22, paddingVertical: 12, gap: 3 },
   eventName: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 21 },

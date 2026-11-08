@@ -95,7 +95,7 @@ export default function RsvpScreen() {
           <Text style={[styles.submitText, darkMode && styles.darkAccent]}>Preview response</Text>
         </Pressable>
         {previewed && <Text style={styles.notice} accessibilityLiveRegion="polite">Response previewed. No RSVP or notes were saved or sent to the host.</Text>}
-        <Text style={styles.notice}>Preview only: this is a sample invitation. Responses and notes are not saved or sent. The plus-one option is shown as an example.</Text>
+        <Text style={styles.notice}>This is a sample invitation. Responses and notes are not saved or sent. The plus-one option is shown as an example.</Text>
       </View>
       {(from === "events" || from === "guest-list") && (
         <Pressable accessibilityRole="link" onPress={() => router.replace(from === "events" ? "/events" : "/guest-list")} style={[styles.back, darkMode && styles.darkCard]}>

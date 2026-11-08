@@ -88,7 +88,7 @@ export default function TasksScreen() {
       <View style={styles.overview}>
         <Text style={styles.title} accessibilityRole="header">My Tasks</Text>
         <Text style={styles.subtitle}>A little progress goes a long way.</Text>
-        <Text style={styles.preview}>Preview only: summary and task list are separate examples.</Text>
+        <Text style={styles.preview}>Summary and task list are separate examples.</Text>
 
         <View style={[styles.card, darkMode && styles.darkPanel]}>
           <Text style={[styles.cardTitle, darkMode && styles.darkText]}>Planning progress</Text>
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
   overview: { backgroundColor: "#c65d58", borderRadius: 32, padding: 16, gap: 12 },
   title: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 26, textAlign: "center" },
   subtitle: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 14, textAlign: "center" },
-  preview: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 12, textAlign: "center" },
+  preview: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 14, lineHeight: 19, textAlign: "center" },
   card: { backgroundColor: "#ffffff", borderRadius: 18, padding: 15, gap: 10 },
   cardTitle: { flexShrink: 1, color: "#1e1e1e", fontFamily: "DMSans_700Bold", fontSize: 16 },
   detail: { color: "#3d2423", fontFamily: "DMSans_400Regular", fontSize: 13, lineHeight: 19 },

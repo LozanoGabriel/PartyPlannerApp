@@ -25,7 +25,7 @@ export default function EventSubmission() {
           )}
         </View>
         <Text style={styles.subtitle}>{aiSuggestions ? "Gala has prepared your event workspace and initial planning checklist." : "Your event workspace and planning checklist preview."}</Text>
-        <Text style={[styles.notice, darkMode && styles.darkText]}>Example preview only. No event, workspace, or checklist has been created.</Text>
+        <Text style={[styles.notice, darkMode && styles.darkText]}>This is an example. No event, workspace, or checklist has been created.</Text>
         <View style={styles.card}>
           <Text style={styles.eventTitle}>Mario&apos;s Birthday</Text>
           <Text style={styles.details}>December 5, 2026 • 5:00 PM</Text>
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
   galaFrame: { width: 240, height: 220, alignSelf: "center", alignItems: "center", justifyContent: "center", overflow: "hidden" },
   gala: { position: "absolute", top: -10, width: 320, height: 320 },
   subtitle: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 15, lineHeight: 21, textAlign: "center" },
-  notice: { color: "#533331", fontFamily: "DMSans_700Bold", fontSize: 12, textAlign: "center" },
+  notice: { color: "#533331", fontFamily: "DMSans_700Bold", fontSize: 14, textAlign: "center" },
   card: { backgroundColor: "#c65d58", borderRadius: 28, padding: 18, gap: 8 },
   eventTitle: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 20 },
   details: { flexShrink: 1, color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 14 },

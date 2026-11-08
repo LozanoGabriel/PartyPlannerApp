@@ -71,7 +71,7 @@ export default function EventPreferencesScreen() {
 
   return (
     <SettingsLayout title="Event Preferences" onNavigate={guard.navigate} onBack={() => guard.navigate("/settings")}>
-      <Text style={styles.notice}>Preview only. Preferences last for this session and do not change event creation.</Text>
+      <Text style={styles.notice}>Preferences last for this session and do not change event creation.</Text>
       {fields.map(({ key, label, unit, minimum }) => {
         const value = Number(draft[key]);
         const valid = /^\d+$/.test(draft[key]) && Number.isSafeInteger(value);
@@ -98,7 +98,7 @@ export default function EventPreferencesScreen() {
 }
 
 const styles = StyleSheet.create({
-  notice: { color: "#ffffff", backgroundColor: "#333333", borderRadius: 10, padding: 10, textAlign: "center", fontFamily: "DMSans_400Regular", fontSize: 13 },
+  notice: { color: "#ffffff", backgroundColor: "#333333", borderRadius: 10, padding: 10, textAlign: "center", fontFamily: "DMSans_400Regular", fontSize: 14, lineHeight: 20 },
   field: { gap: 8 },
   label: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 16 },
   numberRow: { flexDirection: "row", alignItems: "center", gap: 8 },

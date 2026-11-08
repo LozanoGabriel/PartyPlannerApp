@@ -8,7 +8,7 @@ import { useAppPreferences } from "./app-preferences";
 export function SettingsLayout({ title, children, back = true, onNavigate, onBack }: { title: string; children: ReactNode; back?: boolean; onNavigate?: (href: Href) => void; onBack?: () => void }) {
   const { darkMode } = useAppPreferences();
   return (
-    <DashboardLayout onNavigate={onNavigate}>
+    <DashboardLayout active="Settings" onNavigate={onNavigate}>
       <GatherBrand />
       <View style={styles.card}>
         <Text style={styles.title} accessibilityRole="header">{title}</Text>

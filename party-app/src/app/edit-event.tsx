@@ -100,7 +100,7 @@ export default function EditEventScreen() {
     <DashboardLayout showNavigation={false}>
       <View style={styles.card}>
         <Text style={styles.title} accessibilityRole="header">Edit Event</Text>
-        <Text style={styles.notice}>Preview only: changes stay on this device until the app reloads. No event is saved to a server.</Text>
+        <Text style={styles.notice}>Changes stay on this device until the app reloads. No event is saved to a server.</Text>
         <View style={styles.field}>
           <Text style={styles.label}>Event Image</Text>
           {draft.imageUri && <Image source={{ uri: draft.imageUri }} style={styles.image} resizeMode="cover" accessibilityLabel="Selected event image" onError={(event) => { console.error("Failed to load event image:", event.nativeEvent.error); setImageError("Unable to display this image. Please choose another one."); }} />}
@@ -108,7 +108,7 @@ export default function EditEventScreen() {
             <Text style={styles.placeholderText}>{draft.imageUri ? "Change image" : "Choose an image"}</Text>
           </Pressable>
           {draft.imageUri && <Pressable accessibilityRole="button" onPress={() => { setDraft({ ...draft, imageUri: null }); setImageError(""); }} style={styles.removeImage}><Text style={styles.backText}>Remove image</Text></Pressable>}
-          <Text style={styles.hint}>Image preview only; not uploaded or saved to a server.</Text>
+          <Text style={styles.hint}>The image is not uploaded or saved to a server.</Text>
           {!!imageError && <Text style={styles.error} accessibilityRole="alert">{imageError}</Text>}
         </View>
         {fields.map(({ key, label, hint }) => (
