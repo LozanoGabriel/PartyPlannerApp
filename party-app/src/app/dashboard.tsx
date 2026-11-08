@@ -18,6 +18,7 @@ export default function DashboardScreen() {
 
   return (
     <DashboardLayout active="Home" compactContent>
+      <View style={styles.dashboard}>
       <View style={styles.header}>
         <View style={styles.galaFrame}>
           <Image source={gala} style={styles.gala} resizeMode="contain" accessible={false} />
@@ -74,11 +75,13 @@ export default function DashboardScreen() {
       <Pressable style={styles.createButton} accessibilityRole="link" onPress={() => router.push({ pathname: "/create-event/[step]", params: { step: "1" } })}>
         <Text style={styles.createText}>Create new event</Text>
       </Pressable>
+      </View>
     </DashboardLayout>
   );
 }
 
 const styles = StyleSheet.create({
+  dashboard: { flex: 1, justifyContent: "space-evenly" },
   header: { flexDirection: "row", alignItems: "center", gap: 6 },
   galaFrame: { width: 48, height: 48, overflow: "hidden", alignItems: "center", justifyContent: "center" },
   gala: { width: 80, height: 80 },

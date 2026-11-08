@@ -1,9 +1,10 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useLocalSearchParams } from "expo-router";
-import { Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { EventFlowButtons, EventFlowLayout } from "../../components/event-flow";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { EventFlowButtons, EventFlowLayout, GalaMessage } from "../../components/event-flow";
+import { EventSettingsStep } from "../../components/event-settings-step";
+import { useEventSettings } from "../../components/event-settings-context";
 
-const gala = require("../../../assets/images/gala_front_facing.png");
 const eventTypes = [
   { id: "conversation", title: "Conversation / Meet-up", detail: "Coffee meetups and casual gatherings" },
   { id: "celebration", title: "Celebration", detail: "Birthdays, graduations, anniversaries" },
@@ -24,21 +25,8 @@ function isEventType(value: string | string[] | undefined): value is EventType {
   return eventTypes.some((type) => type.id === value);
 }
 
-function GalaMessage({ heading, children }: { heading: string; children: string }) {
-  return (
-    <View style={styles.galaBox}>
-      <View style={styles.galaFrame}>
-        <Image source={gala} style={styles.gala} resizeMode="contain" accessible={false} />
-      </View>
-      <View style={styles.galaText}>
-        <Text style={styles.galaHeading}>{heading}</Text>
-        <Text style={styles.galaMessage}>{children}</Text>
-      </View>
-    </View>
-  );
-}
-
 export default function CreateEventStep() {
+  const { reset } = useEventSettings();
   const { step: stepParam, type, name, nameMode } = useLocalSearchParams<{ step: string; type?: string; name?: string; nameMode?: string }>();
   const selected = isEventType(type) ? type : undefined;
   const customName = nameMode === "custom";
@@ -61,6 +49,7 @@ export default function CreateEventStep() {
 
   function goBack() {
     if (step === 1) {
+      reset();
       router.replace("/dashboard");
     } else {
       router.replace({ pathname: "/create-event/[step]", params: { step: String(step - 1), ...routeParams } });
@@ -154,6 +143,8 @@ export default function CreateEventStep() {
           </View>
           <EventFlowButtons onBack={goBack} disabled={!name?.trim()} disabledHint="Choose or enter an event name to continue." onContinue={() => goToStep(3)} />
         </>
+      ) : step === 3 ? (
+        <EventSettingsStep onBack={goBack} onContinue={() => goToStep(4)} />
       ) : (
         <View style={styles.placeholder}>
           <Text style={styles.title} accessibilityRole="header">Step {step} preview</Text>
@@ -174,12 +165,6 @@ const styles = StyleSheet.create({
   intro: { gap: 4, alignItems: "center" },
   title: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 23, textAlign: "center" },
   subtitle: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 14, lineHeight: 19, textAlign: "center" },
-  galaBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#ffffff", borderRadius: 18, padding: 10 },
-  galaFrame: { width: 52, height: 52, overflow: "hidden", alignItems: "center", justifyContent: "center" },
-  gala: { width: 86, height: 86 },
-  galaText: { flex: 1, gap: 2 },
-  galaHeading: { color: "#c65d58", fontFamily: "DMSans_700Bold", fontSize: 16 },
-  galaMessage: { color: "#3d2423", fontFamily: "DMSans_400Regular", fontSize: 13, lineHeight: 17 },
   section: { gap: 4 },
   sectionTitle: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 19 },
   sectionSubtitle: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 14, lineHeight: 19 },

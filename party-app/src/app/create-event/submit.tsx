@@ -1,9 +1,11 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { DashboardLayout } from "../../components/dashboard-layout";
+import { useEventSettings } from "../../components/event-settings-context";
 
 export default function EventSubmission() {
   const { type, name, nameMode } = useLocalSearchParams<{ type?: string; name?: string; nameMode?: string }>();
+  const { reset } = useEventSettings();
 
   return (
     <DashboardLayout showNavigation={false}>
@@ -13,7 +15,7 @@ export default function EventSubmission() {
         <Pressable style={styles.button} accessibilityRole="button" onPress={() => router.replace({ pathname: "/create-event/[step]", params: { step: "5", ...(type ? { type } : {}), ...(name ? { name } : {}), ...(nameMode ? { nameMode } : {}) } })}>
           <Text style={styles.buttonText}>Go Back</Text>
         </Pressable>
-        <Pressable style={styles.button} accessibilityRole="link" onPress={() => router.replace("/dashboard")}>
+        <Pressable style={styles.button} accessibilityRole="link" onPress={() => { reset(); router.replace("/dashboard"); }}>
           <Text style={styles.buttonText}>Return to Dashboard</Text>
         </Pressable>
       </View>

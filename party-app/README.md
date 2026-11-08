@@ -33,7 +33,7 @@ The terms and privacy notice is draft placeholder text, not an actual policy or 
 
 The dashboard, its event and milestone data, and the Events, Tasks, Gala, and Settings pages are previews only. The sample countdowns are based on November 7, 2026. The dashboard's `showEmptyState` switch previews the no-events fallback; replace it with real event data when the backend is connected.
 
-Create new event opens a five-step preview. Step 1 requires an event type and step 2 requires a suggested or custom name. Suggestions are fixed birthday examples, not AI-generated. Steps 3–5 and the submission page are placeholders. Choices are only carried through the preview routes; no event is submitted or saved.
+Create new event opens a five-step preview. Step 1 requires an event type, step 2 requires a suggested or custom name, and step 3 offers editable planning settings and a relative timeline. All suggestions are fixed examples, not AI-generated or based on event type. Finalize Changes keeps valid edits and returns to the read-only view; Accept Suggestions restores the defaults. Settings remain in memory during the preview and are lost when it ends or the app reloads; no event is submitted or saved. Steps 4–5 and the submission page are placeholders.
 
 For an Android development build, run `npx expo start --dev-client` and open the installed development app. After changing bundler dependencies, restart Metro with `npx expo start --dev-client --clear`.
 
