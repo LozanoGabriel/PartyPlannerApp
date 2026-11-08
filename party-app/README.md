@@ -27,11 +27,15 @@ You can start developing by editing the files inside the **src/app** directory. 
 
 ## Login screen
 
-The initial `/` route redirects to the login screen at `/login`. Its sign-in, Google sign-in, sign-up, and password-reset controls are disabled because the app does not yet provide an authentication service, authenticated home, registration route, or password-reset route. Connect those controls and handle sign-in loading and errors when those features are implemented.
+The initial `/` route redirects to `/login`. Sign-in and sign-up open an unauthenticated dashboard preview after local validation; they do not verify credentials or create accounts. Password reset does not send emails, and Google sign-in is unavailable. Connect these flows to the authentication backend before using them for real accounts.
+
+The terms and privacy notice is draft placeholder text, not an actual policy or recorded consent. Replace it with approved terms describing the real data and AI practices before enabling registration.
 
 For an Android development build, run `npx expo start --dev-client` and open the installed development app. After changing bundler dependencies, restart Metro with `npx expo start --dev-client --clear`.
 
 `@expo/ui` is pinned to the Expo SDK 53 alpha release: later canary builds can reference native APIs unavailable in this SDK. After changing native dependencies, rebuild and reinstall the development app with `npx expo run:android`.
+
+The app icon uses `assets/images/gather_logo.png`; the Android adaptive foreground is a padded version of that image. After reviewing any custom native changes, apply icon configuration with `npx expo prebuild --platform android` and rebuild with `npx expo run:android`. Regenerate and rebuild the iOS app on macOS as well.
 
 ## Get a fresh project
 
