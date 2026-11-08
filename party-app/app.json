@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "party-app",
+    "name": "gather",
     "slug": "party-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -36,9 +36,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#ffa49f",
+          "image": "./assets/images/gather_frame_4.png",
+          "imageWidth": 240
         }
       ],
       [

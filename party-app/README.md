@@ -27,6 +27,8 @@ You can start developing by editing the files inside the **src/app** directory. 
 
 ## Login screen
 
+On startup, the final Gather frame fades and gently pops in, then remains on screen for a total of 3.5 seconds after it is ready. With reduced motion enabled, the image appears without animation. The native splash uses the same image; if native project directories already exist, apply the splash configuration with Expo prebuild and review the generated changes before rebuilding. Expo Go and development builds may not display the native splash exactly as a release build does.
+
 The initial `/` route redirects to `/login`. Sign-in and sign-up open an unauthenticated dashboard preview after local validation; they do not verify credentials or create accounts. Password reset does not send emails, and Google sign-in is unavailable. Connect these flows to the authentication backend before using them for real accounts.
 
 Unmatched routes show a custom not-found page; its back button returns to the previous in-app screen, or to the initial route when there is no navigation history. This page does not provide authentication or authorization.
