@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
-import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { DashboardLayout } from "../components/dashboard-layout";
 
 const gala = require("../../assets/images/gala_front_facing.png");
@@ -13,9 +13,6 @@ const milestones = [
 ];
 
 export default function DashboardScreen() {
-  const { width, fontScale } = useWindowDimensions();
-  const welcomeSize = Math.min(43, Math.max(24, (width - 166) * 0.165));
-
   return (
     <DashboardLayout active="Home" compactContent>
       <View style={styles.dashboard}>
@@ -23,19 +20,11 @@ export default function DashboardScreen() {
         <View style={styles.galaFrame}>
           <Image source={gala} style={styles.gala} resizeMode="contain" accessible={false} />
         </View>
-        <Text
-          style={[styles.welcome, { fontSize: welcomeSize, lineHeight: welcomeSize * 1.2 * fontScale }]}
-          accessibilityRole="header"
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.75}
-        >
-          Welcome, Gabriel
-        </Text>
         <Pressable accessibilityRole="link" accessibilityLabel="Settings" onPress={() => router.push("/settings")} style={styles.settings}>
           <Ionicons name="settings-outline" size={28} color="#ffffff" />
         </Pressable>
       </View>
+      <Text style={styles.welcome} accessibilityRole="header">Welcome, Gabriel!</Text>
       <Text style={styles.heading}>Event Overview</Text>
       <Text style={styles.preview}>Preview only: {showEmptyState ? "not signed in." : "sample data, not signed in."}</Text>
 
@@ -82,10 +71,10 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   dashboard: { flex: 1, justifyContent: "space-evenly" },
-  header: { flexDirection: "row", alignItems: "center", gap: 6 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   galaFrame: { width: 48, height: 48, overflow: "hidden", alignItems: "center", justifyContent: "center" },
   gala: { width: 80, height: 80 },
-  welcome: { flex: 1, color: "#ffffff", fontFamily: "NanumPenScript_400Regular" },
+  welcome: { color: "#ffffff", fontFamily: "NanumPenScript_400Regular", fontSize: 43, lineHeight: 52, textAlign: "center" },
   settings: { width: 48, height: 48, alignItems: "center", justifyContent: "center" },
   heading: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 22, textAlign: "center", marginTop: 2 },
   preview: { color: "#533331", fontFamily: "DMSans_400Regular", fontSize: 12, textAlign: "center", marginTop: 2, marginBottom: 8 },
