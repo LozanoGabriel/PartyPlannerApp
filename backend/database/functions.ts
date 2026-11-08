@@ -1,7 +1,11 @@
 //TODO: Change from mock data to true integration
+<<<<<<< Updated upstream
 import { supabase } from 
 import { EventDetails } from "../../interfaces/event-details"
 import { mockEventDetail, mockOk } from "../mock-data"
+=======
+import { mockEventDetails, mockGuestDetails, mockOk, mockTaskDetails, mockBudget } from "../mock-data"
+>>>>>>> Stashed changes
 
 
 //TODO : Implement
@@ -58,5 +62,37 @@ export function deleteGuestFromSupabase(jwt, guestId) {
 }
 
 export function patchGuestInSupabase(jwt, guest_data) {
+    return mockOk
+}
+
+export function getGuestsFromSupabase(jwt, guest_data) {
+    return [mockGuestDetails,mockGuestDetails]
+}
+
+
+export function postTaskToSupabase(jwt, event_id) {
+    return 0 // Return task ID here
+}
+export function deleteTaskFromSupabase(jwt, task_id) {
+    return mockOk
+}
+
+export function patchTaskInSupabase(jwt, task_data) {
+    return mockOk
+}
+
+export function getTasksFromSupabase(jwt, event_id?) {
+    return [mockTaskDetails,mockTaskDetails]
+}
+
+export function getBudgetFromSupabase(jwt, event_id) {
+    return mockBudget
+}
+
+export function postBudgetToSupabase(jwt, budget_data) {
+    return mockOk
+}
+
+export function patchBudgetInSupabase(jwt, budget_data) {
     return mockOk
 }

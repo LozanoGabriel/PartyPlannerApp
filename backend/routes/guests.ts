@@ -1,11 +1,18 @@
 import express from "express"
-import { postGuestToSupabase, deleteGuestFromSupabase, patchGuestInSupabase } from "../database/functions"
+import { getGuestsFromSupabase, postGuestToSupabase, deleteGuestFromSupabase, patchGuestInSupabase } from "../database/functions"
 
 type GuestPostPayload = {jwt: string, guest_data: MinimumGuestData }
 type MinimumGuestData = { name: string, plus_one_allowed: boolean, invitation_status: string, rsvp_status: string}
 
 //This route is intended for the creation of Guests for an event.
 const router = express.Router()
+
+
+router.get("/:eventId", (req, res) => {
+    const jwt = req.body.jwt
+    const eventId = req.params.eventId
+    res.json(getGuestsFromSupabase(jwt, eventId))
+})
 
 router.post("/:eventId", (req, res) => {
     const body: GuestPostPayload = req.body
