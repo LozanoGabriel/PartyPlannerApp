@@ -144,12 +144,13 @@ export function EventSettingsStep({ onBack, onContinue, eventDetails }: {
 
   return (
     <>
+      <Text style={styles.title} accessibilityRole="header">Event Details</Text>
+      <Text style={styles.caption}>You can always change these settings later</Text>
       <GalaAssistant
         context="Event Settings"
         eventDetails={eventDetails}
         hint="Ask Gala for ideas about your event settings."
       />
-      <Text style={styles.notice}>Duration and RSVP deadline are saved. Invitation lead time, food, drink, and timeline choices are planning notes and are not saved yet.</Text>
       <View style={styles.settings}>
         {fields.map(({ key, label, unit }) => (
           <View style={styles.settingRow} key={key}>
@@ -162,8 +163,6 @@ export function EventSettingsStep({ onBack, onContinue, eventDetails }: {
                   onChangeText={(value) => updateNumber(key, value)}
                   keyboardType="number-pad"
                   maxLength={6}
-                  placeholder={key === "duration" ? "Required" : "Optional"}
-                  placeholderTextColor={darkMode ? darkPalette.placeholder : "#666666"}
                   style={[styles.numberInput, styles.settingInput, darkMode && styles.darkInput]}
                 />
               </View>
@@ -205,13 +204,13 @@ export function EventSettingsStep({ onBack, onContinue, eventDetails }: {
         )}
       </View>
       {!!error && <Text style={styles.error} accessibilityLiveRegion="polite">{error}</Text>}
-      <Text style={styles.caption}>You can always change these settings later</Text>
       <EventFlowButtons onBack={onBack} onContinue={onContinue} disabled={!!error} disabledHint={error} />
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  title: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 24, textAlign: "center" },
   darkPanel: { backgroundColor: darkPalette.panel },
   darkInput: { backgroundColor: darkPalette.panel, color: darkPalette.text },
   darkAccent: { color: darkPalette.accent },

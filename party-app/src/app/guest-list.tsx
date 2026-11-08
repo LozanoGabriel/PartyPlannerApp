@@ -166,8 +166,8 @@ export default function GuestListScreen() {
     setNotice("");
     try {
       const inviteLink = await generateGuestInviteLink(guest.id);
-      console.info(`RSVP invitation link for ${guest.name}: ${inviteLink}`);
-      setNotice(`Invitation link for ${guest.name} was generated and printed to the console.`);
+      console.log(`RSVP invitation link for ${guest.name}: ${inviteLink}`);
+      setNotice(`Invitation link for ${guest.name} generated. Check the browser developer console or Expo logs.`);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not generate the invitation link.");
     } finally {
