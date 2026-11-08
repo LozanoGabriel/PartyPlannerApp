@@ -5,6 +5,8 @@ import { EventFlowButtons, EventFlowLayout, GalaMessage } from "../../components
 import { EventSettingsStep } from "../../components/event-settings-step";
 import { useEventSettings } from "../../components/event-settings-context";
 import { BudgetStep, GuestStep } from "../../components/event-guest-budget";
+import { useAppPreferences } from "../../components/app-preferences";
+import { darkPalette } from "../../components/dark-palette";
 
 const eventTypes = [
   { id: "conversation", title: "Conversation / Meet-up", detail: "Coffee meetups and casual gatherings" },
@@ -27,6 +29,7 @@ function isEventType(value: string | string[] | undefined): value is EventType {
 }
 
 export default function CreateEventStep() {
+  const { darkMode, aiSuggestions } = useAppPreferences();
   const { resetPreview } = useEventSettings();
   const { step: stepParam, type, name, nameMode } = useLocalSearchParams<{ step: string; type?: string; name?: string; nameMode?: string }>();
   const selected = isEventType(type) ? type : undefined;
@@ -102,10 +105,10 @@ export default function CreateEventStep() {
           </View>
           <GalaMessage heading="Gala has some suggestions!">{"I have a few ideas based on the kind of event you're planning. Pick one you love, or come up with your own!"}</GalaMessage>
           <View style={styles.nameSection}>
-            <Text style={styles.centeredTitle} accessibilityRole="header">Choose a name suggested by Gala</Text>
-            <Text style={styles.subtitle}>Example suggestions for a birthday celebration</Text>
+            {aiSuggestions && <Text style={styles.centeredTitle} accessibilityRole="header">Choose a name suggested by Gala</Text>}
+            {aiSuggestions && <Text style={styles.subtitle}>Example suggestions for a birthday celebration</Text>}
             <View style={styles.nameList} accessibilityRole="radiogroup" accessibilityLabel="Event name">
-              {suggestedNames.map((suggestion) => (
+              {aiSuggestions && suggestedNames.map((suggestion) => (
                 <Pressable
                   key={suggestion}
                   accessibilityRole="radio"
@@ -117,17 +120,17 @@ export default function CreateEventStep() {
                   <Text style={styles.nameOptionText}>{suggestion}</Text>
                 </Pressable>
               ))}
-              <Text style={styles.centeredTitle} accessibilityRole="header">Or create your own name</Text>
+              <Text style={styles.centeredTitle} accessibilityRole="header">{aiSuggestions ? "Or create your own name" : "Create your event name"}</Text>
               <Pressable
                 accessibilityRole="radio"
                 accessibilityLabel="I'll come up with my own"
                 accessibilityState={{ checked: customName }}
                 aria-checked={customName}
                 onPress={() => router.setParams({ name: customName ? name : "", nameMode: "custom" })}
-                style={[styles.nameOption, styles.customOption, customName && styles.selectedCard]}
+                style={[styles.nameOption, styles.customOption, darkMode && styles.darkPanel, customName && styles.selectedCard]}
               >
-                <Ionicons name="pencil-outline" size={19} color="#333333" />
-                <Text style={styles.customOptionText}>I&apos;ll come up with my own</Text>
+                <Ionicons name="pencil-outline" size={19} color={darkMode ? darkPalette.text : "#333333"} />
+                <Text style={[styles.customOptionText, darkMode && styles.darkText]}>I&apos;ll come up with my own</Text>
               </Pressable>
             </View>
             {customName && (
@@ -136,9 +139,9 @@ export default function CreateEventStep() {
                 value={name ?? ""}
                 onChangeText={(value) => router.setParams({ name: value })}
                 placeholder="Enter your event name"
-                placeholderTextColor="#666666"
+                placeholderTextColor={darkMode ? darkPalette.placeholder : "#666666"}
                 maxLength={100}
-                style={styles.nameInput}
+                style={[styles.nameInput, darkMode && styles.darkInput]}
               />
             )}
           </View>
@@ -156,6 +159,9 @@ export default function CreateEventStep() {
 }
 
 const styles = StyleSheet.create({
+  darkPanel: { backgroundColor: darkPalette.panel },
+  darkText: { color: darkPalette.text },
+  darkInput: { backgroundColor: darkPalette.panel, color: darkPalette.text },
   intro: { gap: 4, alignItems: "center" },
   title: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 23, textAlign: "center" },
   subtitle: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 14, lineHeight: 19, textAlign: "center" },

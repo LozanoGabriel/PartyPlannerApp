@@ -1,12 +1,14 @@
 import { Inter_400Regular } from "@expo-google-fonts/inter/400Regular";
 import { NanumPenScript_400Regular } from "@expo-google-fonts/nanum-pen-script/400Regular";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,25 +17,28 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAppPreferences } from "./app-preferences";
+import { darkPalette } from "./dark-palette";
 
 export const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
 export function AuthPage({ children }: { children: ReactNode }) {
-  const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, NanumPenScript_400Regular });
+  const { darkMode } = useAppPreferences();
+  const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, NanumPenScript_400Regular, ...Ionicons.font });
 
   useEffect(() => {
     if (fontError) console.error("Failed to load authentication fonts:", fontError);
   }, [fontError]);
 
   return (
-    <SafeAreaView style={styles.page}>
+    <SafeAreaView style={[styles.page, darkMode && { backgroundColor: "#1b1b1b" }]}>
       <Stack.Screen options={{ headerShown: false }} />
       {!fontsLoaded ? (
         <View style={styles.status}>
           {fontError ? (
-            <Text accessibilityRole="alert">Unable to load the fonts. Please restart the app.</Text>
+            <Text style={darkMode && { color: "#ffffff" }} accessibilityRole="alert">Unable to load the fonts. Please restart the app.</Text>
           ) : (
-            <ActivityIndicator size="large" color="#2c2c2c" accessibilityLabel="Loading screen" />
+            <ActivityIndicator size="large" color={darkMode ? "#ffffff" : "#2c2c2c"} accessibilityLabel="Loading screen" />
           )}
         </View>
       ) : (
@@ -47,21 +52,39 @@ export function AuthPage({ children }: { children: ReactNode }) {
   );
 }
 
-export function AuthField({ label, error, ...inputProps }: TextInputProps & { label: string; error?: string }) {
+export function AuthField({ label, error, revealPassword = false, ...inputProps }: TextInputProps & { label: string; error?: string; revealPassword?: boolean }) {
+  const { darkMode } = useAppPreferences();
+  const [showPassword, setShowPassword] = useState(false);
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        {...inputProps}
-        accessibilityLabel={label}
-        accessibilityHint={error}
-        placeholderTextColor="#767676"
-        style={[styles.input, error && styles.invalidInput]}
-      />
-      {error ? <Text style={styles.error} accessibilityLiveRegion="polite">{error}</Text> : null}
+      <Text style={[styles.label, darkMode && darkStyles.text]}>{label}</Text>
+      <View>
+        <TextInput
+          {...inputProps}
+          secureTextEntry={revealPassword ? !showPassword : inputProps.secureTextEntry}
+          accessibilityLabel={label}
+          accessibilityHint={error}
+          placeholderTextColor={darkMode ? darkPalette.placeholder : "#767676"}
+          style={[styles.input, darkMode && darkStyles.input, revealPassword && styles.passwordInput, error && styles.invalidInput]}
+        />
+        {revealPassword && (
+          <Pressable accessibilityRole="button" accessibilityLabel={`${showPassword ? "Hide" : "Show"} ${label.toLowerCase()}`} onPress={() => setShowPassword(!showPassword)} style={styles.passwordToggle}>
+            <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={22} color={darkMode ? darkPalette.text : "#533331"} />
+          </Pressable>
+        )}
+      </View>
+      {error ? <Text style={[styles.error, darkMode && darkStyles.accent]} accessibilityLiveRegion="polite">{error}</Text> : null}
     </View>
   );
 }
+
+export const darkStyles = StyleSheet.create({
+  card: { backgroundColor: darkPalette.panel, borderColor: "#888888" },
+  input: { backgroundColor: "#202020", color: darkPalette.text, borderColor: "#888888" },
+  text: { color: darkPalette.text },
+  accent: { color: darkPalette.accent },
+  button: { backgroundColor: "#555555", borderColor: "#aaaaaa" },
+});
 
 export const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: "#ffa49f" },
@@ -91,6 +114,8 @@ export const styles = StyleSheet.create({
     fontFamily: "Inter_400Regular", fontSize: 16, lineHeight: 20,
   },
   invalidInput: { borderColor: "#b3261e" },
+  passwordInput: { paddingRight: 52 },
+  passwordToggle: { position: "absolute", right: 0, top: 0, bottom: 0, width: 48, alignItems: "center", justifyContent: "center" },
   error: { color: "#b3261e", fontFamily: "Inter_400Regular", fontSize: 14 },
   button: {
     alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#2c2c2c",

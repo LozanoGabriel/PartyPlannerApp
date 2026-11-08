@@ -2,6 +2,8 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { EventFlowButtons } from "./event-flow";
 import { BudgetChoice, useEventSettings } from "./event-settings-context";
+import { useAppPreferences } from "./app-preferences";
+import { darkPalette } from "./dark-palette";
 
 const gala = require("../../assets/images/gala_front_facing.png");
 const MAX_GUESTS = 999999999;
@@ -9,6 +11,7 @@ const MAX_GUESTS = 999999999;
 type StepProps = { onBack: () => void; onContinue: () => void };
 
 export function GuestStep({ onBack, onContinue }: StepProps) {
+  const { darkMode } = useAppPreferences();
   const { guestCount, setGuestCount } = useEventSettings();
   const valid = guestCount === "" || (/^\d+$/.test(guestCount) && Number(guestCount) <= MAX_GUESTS);
   const count = valid && guestCount !== "" ? Number(guestCount) : 0;
@@ -23,12 +26,12 @@ export function GuestStep({ onBack, onContinue }: StepProps) {
         <Text style={styles.cardTitle} accessibilityRole="header">Create Guest List</Text>
         <Text style={styles.subtitle}>What is the total headcount of attendees (not including plus ones)?</Text>
         <View style={styles.counter}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Decrease guest count" accessibilityState={{ disabled: count === 0 }} disabled={count === 0} onPress={() => setGuestCount(String(count - 1))} style={[styles.counterButton, count === 0 && styles.disabled]}>
-            <Ionicons name="remove" size={24} color="#c65d58" />
+          <Pressable accessibilityRole="button" accessibilityLabel="Decrease guest count" accessibilityState={{ disabled: count === 0 }} disabled={count === 0} onPress={() => setGuestCount(String(count - 1))} style={[styles.counterButton, darkMode && styles.darkPanel, count === 0 && styles.disabled]}>
+            <Ionicons name="remove" size={24} color={darkMode ? darkPalette.accent : "#c65d58"} />
           </Pressable>
-          <TextInput accessibilityLabel="Guest headcount" value={guestCount} onChangeText={setGuestCount} keyboardType="number-pad" maxLength={9} placeholder="0" placeholderTextColor="#666666" style={styles.countInput} />
-          <Pressable accessibilityRole="button" accessibilityLabel="Increase guest count" accessibilityState={{ disabled: count >= MAX_GUESTS }} disabled={count >= MAX_GUESTS} onPress={() => setGuestCount(String(count + 1))} style={[styles.counterButton, count >= MAX_GUESTS && styles.disabled]}>
-            <Ionicons name="add" size={24} color="#c65d58" />
+          <TextInput accessibilityLabel="Guest headcount" value={guestCount} onChangeText={setGuestCount} keyboardType="number-pad" maxLength={9} placeholder="0" placeholderTextColor={darkMode ? darkPalette.placeholder : "#666666"} style={[styles.countInput, darkMode && styles.darkInput]} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Increase guest count" accessibilityState={{ disabled: count >= MAX_GUESTS }} disabled={count >= MAX_GUESTS} onPress={() => setGuestCount(String(count + 1))} style={[styles.counterButton, darkMode && styles.darkPanel, count >= MAX_GUESTS && styles.disabled]}>
+            <Ionicons name="add" size={24} color={darkMode ? darkPalette.accent : "#c65d58"} />
           </Pressable>
         </View>
         {!valid && <Text style={styles.error} accessibilityRole="alert">Enter a whole number of guests.</Text>}
@@ -40,6 +43,7 @@ export function GuestStep({ onBack, onContinue }: StepProps) {
 }
 
 export function BudgetStep({ onBack, onContinue }: StepProps) {
+  const { darkMode, aiSuggestions } = useAppPreferences();
   const { budgetChoice, setBudgetChoice, budgetAmount, setBudgetAmount } = useEventSettings();
   const validAmount = /^\d{1,9}(\.\d{1,2})?$/.test(budgetAmount);
   const invalidManualBudget = budgetChoice === "manual" && !validAmount;
@@ -47,11 +51,11 @@ export function BudgetStep({ onBack, onContinue }: StepProps) {
   function option(choice: Exclude<BudgetChoice, null>, label: string, detail: string, icon: "gala" | "pencil") {
     const selected = budgetChoice === choice;
     return (
-      <Pressable accessibilityRole="radio" accessibilityLabel={label} accessibilityHint={detail} accessibilityState={{ checked: selected }} aria-checked={selected} onPress={() => setBudgetChoice(choice)} style={[styles.budgetOption, choice === "generate" ? styles.generate : styles.manual, selected && styles.selected]}>
-        {icon === "gala" ? <View style={styles.galaFrame}><Image source={gala} style={styles.gala} resizeMode="contain" accessible={false} /></View> : <Ionicons name="pencil-outline" size={25} color="#c65d58" />}
+      <Pressable accessibilityRole="radio" accessibilityLabel={label} accessibilityHint={detail} accessibilityState={{ checked: selected }} aria-checked={selected} onPress={() => setBudgetChoice(choice)} style={[styles.budgetOption, choice === "generate" ? styles.generate : styles.manual, darkMode && choice === "manual" && styles.darkPanel, selected && styles.selected, selected && darkMode && styles.darkSelected]}>
+        {icon === "gala" ? <View style={styles.galaFrame}><Image source={gala} style={styles.gala} resizeMode="contain" accessible={false} /></View> : <Ionicons name="pencil-outline" size={25} color={darkMode ? darkPalette.accent : "#c65d58"} />}
         <View style={styles.optionText}>
-          <Text style={[styles.optionTitle, choice === "manual" && styles.coral]}>{label}</Text>
-          <Text style={[styles.optionDetail, choice === "manual" && styles.coral]}>{detail}</Text>
+          <Text style={[styles.optionTitle, choice === "manual" && styles.coral, darkMode && choice === "manual" && styles.darkText]}>{label}</Text>
+          <Text style={[styles.optionDetail, choice === "manual" && styles.coral, darkMode && choice === "manual" && styles.darkText]}>{detail}</Text>
         </View>
       </Pressable>
     );
@@ -62,34 +66,34 @@ export function BudgetStep({ onBack, onContinue }: StepProps) {
       <Text style={styles.title} accessibilityRole="header">Set Your Budget</Text>
       <View style={styles.card}>
         <Text style={styles.cardTitle} accessibilityRole="header">How much would you like to spend?</Text>
-        <Text style={styles.subtitle}>Set an overall budget. Gala can help you distribute it across your expenses.</Text>
-        <View style={styles.total}>
-          <Text style={styles.totalTitle}>Your Total Budget</Text>
+        <Text style={styles.subtitle}>{aiSuggestions ? "Set an overall budget. Gala can help you distribute it across your expenses." : "Set an overall budget for your event, or skip this step."}</Text>
+        <View style={[styles.total, darkMode && styles.darkPanel]}>
+          <Text style={[styles.totalTitle, darkMode && styles.darkText]}>Your Total Budget</Text>
           {budgetChoice === "manual" ? (
             <>
               <View style={styles.amountEntry}>
-                <Text style={styles.amount}>$</Text>
-                <TextInput accessibilityLabel="Your total budget in dollars" value={budgetAmount} onChangeText={setBudgetAmount} keyboardType="decimal-pad" maxLength={12} placeholder="0.00" placeholderTextColor="#666666" style={styles.budgetInput} />
+                <Text style={[styles.amount, darkMode && styles.darkText]}>$</Text>
+                <TextInput accessibilityLabel="Your total budget in dollars" value={budgetAmount} onChangeText={setBudgetAmount} keyboardType="decimal-pad" maxLength={12} placeholder="0.00" placeholderTextColor={darkMode ? darkPalette.placeholder : "#666666"} style={[styles.budgetInput, darkMode && styles.darkText]} />
               </View>
-              <Text style={styles.example}>Enter an amount in dollars, with up to two decimal places.</Text>
+              <Text style={[styles.example, darkMode && styles.darkText]}>Enter an amount in dollars, with up to two decimal places.</Text>
             </>
           ) : (
             <>
-              <Text style={styles.amount}>$1,000.00</Text>
-              <Text style={styles.example}>Example only</Text>
+              <Text style={[styles.amount, darkMode && styles.darkText]}>$1,000.00</Text>
+              <Text style={[styles.example, darkMode && styles.darkText]}>Example only</Text>
             </>
           )}
         </View>
-        <Text style={styles.helpTitle}>Would you like Gala to help?</Text>
+        <Text style={styles.helpTitle}>{aiSuggestions ? "Would you like Gala to help?" : "Choose a budget approach"}</Text>
         <View style={styles.options} accessibilityRole="radiogroup" accessibilityLabel="Budget approach">
-          {option("generate", "Generate a Budget", "I'll suggest how to distribute your budget across venue, food, decorations, entertainment, and other expenses.", "gala")}
+          {aiSuggestions && option("generate", "Generate a Budget", "I'll suggest how to distribute your budget across venue, food, decorations, entertainment, and other expenses.", "gala")}
           {option("manual", "I'll Do It Myself", "Enter a total budget manually.", "pencil")}
           <Pressable accessibilityRole="radio" accessibilityLabel="Skip for now" accessibilityState={{ checked: budgetChoice === "skip" }} aria-checked={budgetChoice === "skip"} onPress={() => setBudgetChoice("skip")} style={[styles.skip, budgetChoice === "skip" && styles.selected]}>
             <Text style={styles.optionTitle}>Skip for now</Text>
           </Pressable>
         </View>
         {invalidManualBudget && <Text style={styles.error} accessibilityLiveRegion="polite">Enter a valid budget amount to continue.</Text>}
-        <Text style={styles.budgetNotice}>Preview only: amounts are not saved and budget generation is not available yet.</Text>
+        <Text style={styles.budgetNotice}>{aiSuggestions ? "Preview only: amounts are not saved and budget generation is not available yet." : "Preview only: amounts are not saved."}</Text>
       </View>
       <EventFlowButtons onBack={onBack} onContinue={onContinue} disabled={invalidManualBudget} disabledHint="Enter a valid budget amount to continue." />
     </>
@@ -97,6 +101,10 @@ export function BudgetStep({ onBack, onContinue }: StepProps) {
 }
 
 const styles = StyleSheet.create({
+  darkPanel: { backgroundColor: darkPalette.panel },
+  darkInput: { backgroundColor: darkPalette.panel, color: darkPalette.text },
+  darkText: { color: darkPalette.text },
+  darkSelected: { borderColor: "#ffffff" },
   intro: { gap: 5, alignItems: "center" },
   title: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 24, textAlign: "center" },
   subtitle: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 14, lineHeight: 20, textAlign: "center" },

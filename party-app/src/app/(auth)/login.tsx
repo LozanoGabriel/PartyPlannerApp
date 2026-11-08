@@ -1,11 +1,13 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { Image, Pressable, Text, useWindowDimensions, View } from "react-native";
-import { AuthField, AuthPage, isValidEmail, styles } from "../../components/auth-ui";
+import { AuthField, AuthPage, darkStyles, isValidEmail, styles } from "../../components/auth-ui";
+import { useAppPreferences } from "../../components/app-preferences";
 
 const elephant = require("../../../assets/images/gala_front_facing.png");
 
 export default function LoginScreen() {
+  const { darkMode } = useAppPreferences();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -38,7 +40,7 @@ export default function LoginScreen() {
         </View>
       </View>
 
-      <View style={styles.card}>
+      <View style={[styles.card, darkMode && darkStyles.card]}>
         <AuthField
           label="Email"
           value={email}
@@ -59,27 +61,27 @@ export default function LoginScreen() {
           error={passwordError}
           autoCapitalize="none"
           autoComplete="current-password"
-          secureTextEntry
+          revealPassword
           placeholder="Enter Password here..."
         />
-        <Pressable style={styles.button} accessibilityRole="button" onPress={previewDashboard}>
+        <Pressable style={[styles.button, darkMode && darkStyles.button]} accessibilityRole="button" onPress={previewDashboard}>
           <Text style={styles.buttonText}>Sign In (preview)</Text>
         </Pressable>
         <Pressable
-          style={[styles.button, styles.googleButton, styles.disabled]}
+          style={[styles.button, styles.googleButton, darkMode && darkStyles.button, styles.disabled]}
           disabled
           accessibilityRole="button"
           accessibilityState={{ disabled: true }}
         >
-          <Text style={styles.googleButtonText}>Sign in with Google</Text>
+          <Text style={[styles.googleButtonText, darkMode && darkStyles.text]}>Sign in with Google</Text>
         </Pressable>
         <Pressable accessibilityRole="link" onPress={() => router.push("/forgot-password")}>
-          <Text style={styles.link}>Forgot password?</Text>
+          <Text style={[styles.link, darkMode && darkStyles.text]}>Forgot password?</Text>
         </Pressable>
-        <Pressable style={[styles.button, styles.signUpButton]} accessibilityRole="button" onPress={() => router.push("/sign-up")}>
+        <Pressable style={[styles.button, styles.signUpButton, darkMode && darkStyles.button]} accessibilityRole="button" onPress={() => router.push("/sign-up")}>
           <Text style={styles.buttonText}>Sign Up</Text>
         </Pressable>
-        <Text style={styles.notice}>Preview only: credentials are not verified and Google sign in is unavailable.</Text>
+        <Text style={[styles.notice, darkMode && darkStyles.text]}>Preview only: credentials are not verified and Google sign in is unavailable.</Text>
       </View>
     </AuthPage>
   );

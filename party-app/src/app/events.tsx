@@ -6,6 +6,8 @@ import { DashboardLayout } from "../components/dashboard-layout";
 import { GatherBrand } from "../components/gather-brand";
 import { useEventPreview } from "../components/event-preview-context";
 import { usePreviewProgress } from "../components/use-preview-progress";
+import { useAppPreferences } from "../components/app-preferences";
+import { darkPalette } from "../components/dark-palette";
 
 const gala = require("../../assets/images/gala_front_facing.png");
 
@@ -16,40 +18,50 @@ function EventImage({ uri }: { uri: string }) {
 }
 
 function PageLink({ label, href }: { label: string; href: Href }) {
+  const { darkMode } = useAppPreferences();
   return (
     <Pressable accessibilityRole="link" onPress={() => router.push(href)} style={styles.link}>
-      <Text style={styles.linkText}>{label}</Text>
-      <Ionicons name="arrow-forward" size={18} color="#a43f3a" />
+      <Text style={[styles.linkText, darkMode && styles.darkAccent]}>{label}</Text>
+      <Ionicons name="arrow-forward" size={18} color={darkMode ? darkPalette.accent : "#a43f3a"} />
     </Pressable>
   );
 }
 
 function ProgressCards() {
+  const { darkMode } = useAppPreferences();
+  const { guests } = useEventPreview();
   const { progress, fraction } = usePreviewProgress();
+  const attending = guests.filter((guest) => guest.response === "attending").length;
+  const declined = guests.filter((guest) => guest.response === "declined").length;
+  const maybe = guests.filter((guest) => guest.response === "maybe").length;
+  const awaiting = guests.filter((guest) => guest.response === "pending").length;
+  const sent = guests.filter((guest) => guest.invited).length;
+  const total = guests.length;
 
   const width = (percentage: number) => progress.interpolate({ inputRange: [0, 1], outputRange: ["0%", `${percentage}%`] });
 
   return (
     <>
-      <View style={styles.card}>
+      <View style={[styles.card, darkMode && styles.darkPanel]}>
         <View style={styles.row}>
-          <Text style={styles.cardTitle}>Guest Responses</Text>
-          <Text style={styles.bold} accessibilityLabel="18 of 30 invited">{Math.round(18 * fraction)} of 30 invited</Text>
+          <Text style={[styles.cardTitle, darkMode && styles.darkText]}>Guest Responses</Text>
+          <Text style={[styles.bold, darkMode && styles.darkText]}>{Math.round(sent * fraction)} of {total} marked sent</Text>
         </View>
-        <View style={styles.progress} accessibilityRole="progressbar" accessibilityLabel="Guest responses" accessibilityValue={{ min: 0, max: 30, now: 18, text: "18 responses of 30 invited" }}>
-          <Animated.View style={[styles.attendingBar, { width: width(40) }]} /><Animated.View style={[styles.declinedBar, { width: width(20) }]} />
+        <View style={styles.progress} accessibilityRole="progressbar" accessibilityLabel="Guest responses" accessibilityValue={{ min: 0, max: total || 1, now: total - awaiting, text: `${total - awaiting} responses from ${total} guests` }}>
+          <Animated.View style={[styles.attendingBar, { width: width(total ? attending / total * 100 : 0) }]} /><Animated.View style={[styles.declinedBar, { width: width(total ? declined / total * 100 : 0) }]} /><Animated.View style={[styles.maybeBar, { width: width(total ? maybe / total * 100 : 0) }]} />
         </View>
-        <Text style={styles.detail}>12 attending · 6 declined · 6 awaiting</Text>
-        <Text style={styles.small}>6 additional invitees are untracked in this example.</Text>
-        <Text style={styles.detail}><Text style={styles.bold}>RSVP Deadline:</Text> November 21</Text>
+        <Text style={[styles.detail, darkMode && styles.darkText]}>{attending} attending · {declined} declined · {maybe} maybe · {awaiting} awaiting</Text>
+        <Text style={[styles.small, darkMode && styles.darkText]}>Sample guest list · Sending is not connected.</Text>
+        <Text style={[styles.detail, darkMode && styles.darkText]}><Text style={[styles.bold, darkMode && styles.darkText]}>RSVP Deadline:</Text> November 21</Text>
         <PageLink label="View guest list" href="/guest-list" />
+        <PageLink label="Preview RSVP" href={{ pathname: "/rsvp", params: { from: "events" } }} />
       </View>
-      <View style={styles.card}>
-        <View style={styles.row}><Text style={styles.cardTitle}>Planning progress</Text><Text style={styles.cardTitle} accessibilityLabel="65 percent">{Math.round(65 * fraction)}%</Text></View>
+      <View style={[styles.card, darkMode && styles.darkPanel]}>
+        <View style={styles.row}><Text style={[styles.cardTitle, darkMode && styles.darkText]}>Planning progress</Text><Text style={[styles.cardTitle, darkMode && styles.darkText]} accessibilityLabel="65 percent">{Math.round(65 * fraction)}%</Text></View>
         <View style={styles.progress} accessibilityRole="progressbar" accessibilityLabel="Planning progress" accessibilityValue={{ min: 0, max: 100, now: 65, text: "13 of 20 planning tasks completed" }}>
           <Animated.View style={[styles.tasksBar, { width: width(65) }]} />
         </View>
-        <Text style={styles.detail} accessibilityLabel="13 of 20 planning tasks completed">{Math.round(13 * fraction)} of 20 planning tasks completed</Text>
+        <Text style={[styles.detail, darkMode && styles.darkText]} accessibilityLabel="13 of 20 planning tasks completed">{Math.round(13 * fraction)} of 20 planning tasks completed</Text>
         <PageLink label="View planning tasks" href="/tasks" />
       </View>
     </>
@@ -57,7 +69,9 @@ function ProgressCards() {
 }
 
 export default function EventsScreen() {
-  const { event } = useEventPreview();
+  const { darkMode, aiSuggestions } = useAppPreferences();
+  const { event, guests } = useEventPreview();
+  const awaiting = guests.filter((guest) => guest.response === "pending").length;
   return (
     <DashboardLayout active="Events">
       <GatherBrand />
@@ -72,38 +86,41 @@ export default function EventsScreen() {
         <ProgressCards />
 
         <View style={styles.metrics}>
-          <View style={[styles.card, styles.metric]}>
-            <Text style={styles.detail}>Budget remaining</Text>
-            <Text style={styles.metricValue}>$650.00</Text>
-            <Text style={styles.small}>of $1,000.00</Text>
+          <View style={[styles.card, styles.metric, darkMode && styles.darkPanel]}>
+            <Text style={[styles.detail, darkMode && styles.darkText]}>Budget remaining</Text>
+            <Text style={[styles.metricValue, darkMode && styles.darkText]}>$650.00</Text>
+            <Text style={[styles.small, darkMode && styles.darkText]}>of $1,000.00</Text>
           </View>
-          <View style={[styles.card, styles.metric]}>
-            <Text style={styles.detail}>Next Milestone</Text>
-            <Text style={styles.metricValue}>Nov 21</Text>
-            <Text style={styles.small}>RSVP Deadline</Text>
+          <View style={[styles.card, styles.metric, darkMode && styles.darkPanel]}>
+            <Text style={[styles.detail, darkMode && styles.darkText]}>Next Milestone</Text>
+            <Text style={[styles.metricValue, darkMode && styles.darkText]}>Nov 21</Text>
+            <Text style={[styles.small, darkMode && styles.darkText]}>RSVP Deadline</Text>
           </View>
         </View>
 
-        <View style={styles.card}>
+        {aiSuggestions && <View style={[styles.card, darkMode && styles.darkPanel]}>
           <View style={styles.insightHeader}>
             <View style={styles.galaFrame}><Image source={gala} style={styles.gala} resizeMode="contain" accessible={false} /></View>
-            <Text style={styles.cardTitle}>Gala&apos;s Insights</Text>
+            <Text style={[styles.cardTitle, darkMode && styles.darkText]}>Gala&apos;s Insights</Text>
           </View>
-          <Text style={styles.detail}>You&apos;re making great progress! 12 guests haven&apos;t responded yet. It might be a good time to send a friendly RSVP reminder.</Text>
+          <Text style={[styles.detail, darkMode && styles.darkText]}>{awaiting ? `You're making great progress! ${awaiting} ${awaiting === 1 ? "guest hasn't" : "guests haven't"} responded yet. It might be a good time to send a friendly RSVP reminder.` : "Everyone in this sample guest list has a response."}</Text>
           <PageLink label="Ask Gala" href="/gala" />
-        </View>
+        </View>}
       </View>
       <Pressable style={styles.primary} accessibilityRole="link" onPress={() => router.push({ pathname: "/create-event/[step]", params: { step: "1" } })}>
         <Text style={styles.primaryText}>Create New Event</Text>
       </Pressable>
-      <Pressable style={styles.secondary} accessibilityRole="link" onPress={() => router.push("/edit-event")}>
-        <Text style={styles.secondaryText}>Edit Event</Text>
+      <Pressable style={[styles.secondary, darkMode && styles.darkPanel]} accessibilityRole="link" onPress={() => router.push("/edit-event")}>
+        <Text style={[styles.secondaryText, darkMode && styles.darkAccent]}>Edit Event</Text>
       </Pressable>
     </DashboardLayout>
   );
 }
 
 const styles = StyleSheet.create({
+  darkPanel: { backgroundColor: darkPalette.panel },
+  darkText: { color: darkPalette.text },
+  darkAccent: { color: darkPalette.accent },
   overview: { backgroundColor: "#c65d58", borderRadius: 32, padding: 18, gap: 8 },
   title: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 26, textAlign: "center" },
   eventImage: { width: "100%", height: 150, borderRadius: 16 },
@@ -119,6 +136,7 @@ const styles = StyleSheet.create({
   progress: { height: 10, borderRadius: 6, backgroundColor: "#f6e5d8", flexDirection: "row", overflow: "hidden" },
   attendingBar: { backgroundColor: "#d89728" },
   declinedBar: { backgroundColor: "#efcb8f" },
+  maybeBar: { backgroundColor: "#8eaba8" },
   tasksBar: { backgroundColor: "#c65d58" },
   link: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" },
   linkText: { color: "#a43f3a", fontFamily: "DMSans_700Bold", fontSize: 14 },
