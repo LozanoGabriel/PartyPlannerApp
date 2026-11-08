@@ -65,7 +65,10 @@ Promise<EventDetails | null> {
 // The one place that builds a guest's RSVP link.
 // The link only identifies the guest. The page loads the current event, questions and tasks when opened.
 export function buildInviteLink(eventId: string, token: string) {
-    return `${FRONTEND_URL}/rsvp/${eventId}/${token}`;
+    const url = new URL(`${FRONTEND_URL.replace(/\/+$/, "")}/rsvp`);
+    url.searchParams.set("eventId", eventId);
+    url.searchParams.set("token", token);
+    return url.toString();
 }
 
 // The token is the only credential on the RSVP routes.

@@ -1,5 +1,5 @@
 import express, { Response } from "express"
-import { getGuestsFromSupabase, postGuestToSupabase, deleteGuestFromSupabase, patchGuestInSupabase, markInvitationSent } from "../database/guest_logic"
+import { getGuestsFromSupabase, postGuestToSupabase, deleteGuestFromSupabase, patchGuestInSupabase, markInvitationSent, getGuestInviteLink } from "../database/guest_logic"
 import { RSVPerror } from "../database/invitation_logic"
 import { requireAuth } from "../middleware/requireAuth"
 
@@ -46,6 +46,16 @@ router.patch("/:guestId", async (req, res) => {
         return res.status(200).json({ guest })
     } catch (err) {
         return handleError(res, err, "Could not update guest")
+    }
+})
+
+// Generate the guest's RSVP link without marking the invitation as sent.
+router.post("/:guestId/invite", async (req, res) => {
+    try {
+        const inviteLink = await getGuestInviteLink(res.locals.userId, req.params.guestId)
+        return res.status(200).json({ inviteLink })
+    } catch (err) {
+        return handleError(res, err, "Could not generate invitation link")
     }
 })
 

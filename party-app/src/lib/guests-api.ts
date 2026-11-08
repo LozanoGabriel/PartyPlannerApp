@@ -104,6 +104,19 @@ export async function markGuestInvitationSent(guestId: string): Promise<EventGue
   return result.guest;
 }
 
+export async function generateGuestInviteLink(guestId: string): Promise<string> {
+  const result = await request(`/api/guests/${encodeURIComponent(guestId)}/invite`, { method: "POST" });
+  if (!isRecord(result) || typeof result.inviteLink !== "string") {
+    throw new Error("The backend did not return a valid invitation link.");
+  }
+  try {
+    new URL(result.inviteLink);
+  } catch {
+    throw new Error("The backend did not return a valid invitation link.");
+  }
+  return result.inviteLink;
+}
+
 export async function deleteGuest(guestId: string): Promise<void> {
   await request(`/api/guests/${encodeURIComponent(guestId)}`, { method: "DELETE" });
 }

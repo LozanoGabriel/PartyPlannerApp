@@ -2,7 +2,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as DocumentPicker from "expo-document-picker";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
+import { ActivityIndicator, Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { DashboardLayout } from "../components/dashboard-layout";
 import { EventSelector } from "../components/event-selector";
 import { GatherBrand } from "../components/gather-brand";
@@ -15,6 +15,7 @@ import type { GalaConversationEntry } from "../lib/gala-conversation";
 import type { GalaResponse } from "../lib/gala-api";
 
 const gala = require("../../assets/images/gala_front_facing.png");
+const thinkingGala = require("../../assets/images/gala_thinking.png");
 
 const suggestions = [
   { title: "Plan an event", detail: "Start organizing something new" },
@@ -243,7 +244,7 @@ export default function GalaScreen() {
       <View style={[styles.container, narrow && styles.narrowContainer]}>
         <Text style={styles.title} accessibilityRole="header">Chat with Gala</Text>
         <View style={[styles.heroFrame, narrow && styles.narrowHeroFrame]}>
-          <Image source={gala} style={[styles.hero, narrow && styles.narrowHero]} resizeMode="contain" accessibilityLabel="Gala the elephant" />
+          <Image source={sending ? thinkingGala : gala} style={[styles.hero, narrow && styles.narrowHero]} resizeMode="contain" accessibilityLabel={sending ? "Gala is thinking" : "Gala the elephant"} />
         </View>
         <Text style={styles.greeting} accessibilityRole="header">Hi! I&apos;m Gala.</Text>
         <Text style={styles.subtitle}>Your personal planning companion. Let&apos;s make something wonderful happen!</Text>
@@ -261,11 +262,23 @@ export default function GalaScreen() {
           <ScrollView ref={chatRef} style={styles.conversation} contentContainerStyle={styles.messageList} nestedScrollEnabled keyboardShouldPersistTaps="handled" onContentSizeChange={() => chatRef.current?.scrollToEnd({ animated: true })} accessibilityLabel="Preview conversation">
             {messages.map((message) => (
               <View key={message.id} style={[styles.message, message.speaker === "You" ? styles.userMessage : styles.galaMessage, darkMode && styles.darkPanel]}>
-                {message.speaker === "Gala" ? <View style={styles.messageHeader}><Image source={gala} style={styles.messageGala} resizeMode="contain" accessible={false} /><Text style={[styles.messageAuthor, darkMode && styles.darkText]}>Gala</Text></View> : <Text style={[styles.messageAuthor, darkMode && styles.darkText]}>You</Text>}
+                {message.speaker === "Gala" ? <View style={styles.messageHeader}><Image source={sending ? thinkingGala : gala} style={styles.messageGala} resizeMode="contain" accessible={false} /><Text style={[styles.messageAuthor, darkMode && styles.darkText]}>Gala</Text></View> : <Text style={[styles.messageAuthor, darkMode && styles.darkText]}>You</Text>}
                 {!!message.text && <Text style={[styles.messageText, darkMode && styles.darkText]}>{message.text}</Text>}
                 {message.attachment && <Text style={[styles.attachmentText, darkMode && styles.darkText]}>Attachment: {message.attachment} (not sent)</Text>}
               </View>
             ))}
+            {sending && (
+              <View style={[styles.message, styles.galaMessage, styles.thinkingMessage, darkMode && styles.darkPanel]} accessibilityLiveRegion="polite">
+                <View style={styles.messageHeader}>
+                  <Image source={thinkingGala} style={styles.messageGala} resizeMode="contain" accessible={false} />
+                  <Text style={[styles.messageAuthor, darkMode && styles.darkText]}>Gala</Text>
+                </View>
+                <View style={styles.thinkingRow}>
+                  <ActivityIndicator size="small" color={darkMode ? darkPalette.accent : "#a43f3a"} />
+                  <Text style={[styles.messageText, darkMode && styles.darkText]}>Thinking...</Text>
+                </View>
+              </View>
+            )}
           </ScrollView>
         )}
 
@@ -337,6 +350,8 @@ const styles = StyleSheet.create({
   messageHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   messageGala: { width: 36, height: 36 },
   messageAuthor: { color: "#3d2423", fontFamily: "DMSans_700Bold", fontSize: 13 },
+  thinkingMessage: { minHeight: 64, justifyContent: "center" },
+  thinkingRow: { flexDirection: "row", alignItems: "center", gap: 10 },
   messageText: { color: "#3d2423", fontFamily: "DMSans_400Regular", fontSize: 14, lineHeight: 20 },
   attachmentText: { color: "#74534f", fontFamily: "DMSans_400Regular", fontSize: 12 },
   composer: { backgroundColor: "#ffffff", borderRadius: 18, padding: 6 },

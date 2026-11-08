@@ -13,6 +13,7 @@ import {
   createGuest,
   deleteGuest,
   EventGuest,
+  generateGuestInviteLink,
   GuestResponse,
   getGuests,
   markGuestInvitationSent,
@@ -55,6 +56,7 @@ export default function GuestListScreen() {
   const [notice, setNotice] = useState("");
   const [removing, setRemoving] = useState<EventGuest | null>(null);
   const [saving, setSaving] = useState(false);
+  const [invitingGuestId, setInvitingGuestId] = useState<string | null>(null);
   const selectedEvent = events.find((event) => event.id === selectedId);
 
   useFocusEffect(useCallback(() => {
@@ -158,6 +160,21 @@ export default function GuestListScreen() {
     }
   }
 
+  async function createInviteLink(guest: EventGuest) {
+    setInvitingGuestId(guest.id);
+    setError("");
+    setNotice("");
+    try {
+      const inviteLink = await generateGuestInviteLink(guest.id);
+      console.info(`RSVP invitation link for ${guest.name}: ${inviteLink}`);
+      setNotice(`Invitation link for ${guest.name} was generated and printed to the console.`);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not generate the invitation link.");
+    } finally {
+      setInvitingGuestId(null);
+    }
+  }
+
   async function removeGuest() {
     if (!removing) return;
     setSaving(true);
@@ -189,7 +206,7 @@ export default function GuestListScreen() {
         }} label="Select an event" />}
         {(eventsLoading || guestsLoading) && <Text style={styles.preview}>Loading guest list...</Text>}
         {!eventsLoading && events.length === 0 && !error && <Text style={styles.preview}>Create an event before adding guests.</Text>}
-        {selectedEvent && <Text style={styles.preview}>{selectedEvent.name} · Invitation status is tracking only; guests are not contacted automatically.</Text>}
+        {selectedEvent && <Text style={styles.preview}>{selectedEvent.name} · Invite generates an RSVP link; it does not contact the guest automatically.</Text>}
         {!!error && <Text accessibilityRole="alert" style={[styles.error, darkMode && styles.darkAccent]}>{error}</Text>}
         {!!notice && <Text style={styles.preview} accessibilityLiveRegion="polite">{notice}</Text>}
 
@@ -231,7 +248,12 @@ export default function GuestListScreen() {
               ) : (
                 <>
                   <View style={styles.cardRow}>
-                    <View style={styles.avatar}><Text style={styles.avatarText}>{guest.name.trim().charAt(0).toUpperCase()}</Text></View>
+                    <View style={styles.avatarColumn}>
+                      <View style={styles.avatar}><Text style={styles.avatarText}>{guest.name.trim().charAt(0).toUpperCase()}</Text></View>
+                      <Pressable accessibilityRole="button" accessibilityLabel={`Generate invitation link for ${guest.name}`} disabled={saving || invitingGuestId !== null} onPress={() => { void createInviteLink(guest); }} style={styles.inviteButton}>
+                        <Text style={[styles.inviteButtonText, darkMode && styles.darkAccent]}>{invitingGuestId === guest.id ? "Creating..." : "Invite"}</Text>
+                      </Pressable>
+                    </View>
                     <View style={styles.guestInfo}>
                       <Text style={[styles.cardTitle, darkMode && styles.darkText]}>{guest.name}</Text>
                       <Text style={[styles.detail, darkMode && styles.darkText]}>{guestResponseLabels[guest.rsvp_status]}</Text>
@@ -287,8 +309,11 @@ const styles = StyleSheet.create({
   sectionTitle: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 17 },
   card: { backgroundColor: "#ffffff", borderRadius: 18, padding: 14, gap: 8 },
   cardRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  avatarColumn: { alignItems: "center", gap: 2 },
   avatar: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", backgroundColor: "#f6dcd7" },
   avatarText: { color: "#793b37", fontFamily: "DMSans_700Bold", fontSize: 18 },
+  inviteButton: { minHeight: 34, justifyContent: "center", paddingHorizontal: 4 },
+  inviteButtonText: { color: "#a43f3a", fontFamily: "DMSans_700Bold", fontSize: 12 },
   guestInfo: { flex: 1, minWidth: 0, gap: 2 },
   cardTitle: { color: "#1e1e1e", fontFamily: "DMSans_700Bold", fontSize: 16 },
   detail: { color: "#594441", fontFamily: "DMSans_400Regular", fontSize: 13, lineHeight: 18 },
