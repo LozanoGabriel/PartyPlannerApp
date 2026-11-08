@@ -61,7 +61,7 @@ export default function LoginScreen() {
           error={passwordError}
           autoCapitalize="none"
           autoComplete="current-password"
-          secureTextEntry
+          revealPassword
           placeholder="Enter Password here..."
         />
         <Pressable style={[styles.button, darkMode && darkStyles.button]} accessibilityRole="button" onPress={previewDashboard}>

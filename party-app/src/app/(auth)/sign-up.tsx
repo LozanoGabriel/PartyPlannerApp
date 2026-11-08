@@ -50,9 +50,9 @@ export default function SignUpScreen() {
           autoCapitalize="none" autoComplete="email" autoCorrect={false} keyboardType="email-address"
           placeholder="Enter your email" />
         <AuthField label="Password" value={password} onChangeText={setPassword} error={passwordError}
-          autoCapitalize="none" autoComplete="new-password" secureTextEntry placeholder="Enter your password" />
+          autoCapitalize="none" autoComplete="new-password" revealPassword placeholder="Enter your password" />
         <AuthField label="Confirm password" value={confirmPassword} onChangeText={setConfirmPassword} error={confirmError}
-          autoCapitalize="none" autoComplete="new-password" secureTextEntry placeholder="Confirm your password" />
+          autoCapitalize="none" autoComplete="new-password" revealPassword placeholder="Confirm your password" />
         <View style={local.termsSection}>
           <Pressable
             style={local.checkboxRow}

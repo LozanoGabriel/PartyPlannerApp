@@ -29,7 +29,14 @@ function PageLink({ label, href }: { label: string; href: Href }) {
 
 function ProgressCards() {
   const { darkMode } = useAppPreferences();
+  const { guests } = useEventPreview();
   const { progress, fraction } = usePreviewProgress();
+  const attending = guests.filter((guest) => guest.response === "attending").length;
+  const declined = guests.filter((guest) => guest.response === "declined").length;
+  const maybe = guests.filter((guest) => guest.response === "maybe").length;
+  const awaiting = guests.filter((guest) => guest.response === "pending").length;
+  const sent = guests.filter((guest) => guest.invited).length;
+  const total = guests.length;
 
   const width = (percentage: number) => progress.interpolate({ inputRange: [0, 1], outputRange: ["0%", `${percentage}%`] });
 
@@ -38,15 +45,16 @@ function ProgressCards() {
       <View style={[styles.card, darkMode && styles.darkPanel]}>
         <View style={styles.row}>
           <Text style={[styles.cardTitle, darkMode && styles.darkText]}>Guest Responses</Text>
-          <Text style={[styles.bold, darkMode && styles.darkText]} accessibilityLabel="18 of 30 invited">{Math.round(18 * fraction)} of 30 invited</Text>
+          <Text style={[styles.bold, darkMode && styles.darkText]}>{Math.round(sent * fraction)} of {total} marked sent</Text>
         </View>
-        <View style={styles.progress} accessibilityRole="progressbar" accessibilityLabel="Guest responses" accessibilityValue={{ min: 0, max: 30, now: 18, text: "18 responses of 30 invited" }}>
-          <Animated.View style={[styles.attendingBar, { width: width(40) }]} /><Animated.View style={[styles.declinedBar, { width: width(20) }]} />
+        <View style={styles.progress} accessibilityRole="progressbar" accessibilityLabel="Guest responses" accessibilityValue={{ min: 0, max: total || 1, now: total - awaiting, text: `${total - awaiting} responses from ${total} guests` }}>
+          <Animated.View style={[styles.attendingBar, { width: width(total ? attending / total * 100 : 0) }]} /><Animated.View style={[styles.declinedBar, { width: width(total ? declined / total * 100 : 0) }]} /><Animated.View style={[styles.maybeBar, { width: width(total ? maybe / total * 100 : 0) }]} />
         </View>
-        <Text style={[styles.detail, darkMode && styles.darkText]}>12 attending · 6 declined · 6 awaiting</Text>
-        <Text style={[styles.small, darkMode && styles.darkText]}>6 additional invitees are untracked in this example.</Text>
+        <Text style={[styles.detail, darkMode && styles.darkText]}>{attending} attending · {declined} declined · {maybe} maybe · {awaiting} awaiting</Text>
+        <Text style={[styles.small, darkMode && styles.darkText]}>Sample guest list · Sending is not connected.</Text>
         <Text style={[styles.detail, darkMode && styles.darkText]}><Text style={[styles.bold, darkMode && styles.darkText]}>RSVP Deadline:</Text> November 21</Text>
         <PageLink label="View guest list" href="/guest-list" />
+        <PageLink label="Preview RSVP" href={{ pathname: "/rsvp", params: { from: "events" } }} />
       </View>
       <View style={[styles.card, darkMode && styles.darkPanel]}>
         <View style={styles.row}><Text style={[styles.cardTitle, darkMode && styles.darkText]}>Planning progress</Text><Text style={[styles.cardTitle, darkMode && styles.darkText]} accessibilityLabel="65 percent">{Math.round(65 * fraction)}%</Text></View>
@@ -62,7 +70,8 @@ function ProgressCards() {
 
 export default function EventsScreen() {
   const { darkMode, aiSuggestions } = useAppPreferences();
-  const { event } = useEventPreview();
+  const { event, guests } = useEventPreview();
+  const awaiting = guests.filter((guest) => guest.response === "pending").length;
   return (
     <DashboardLayout active="Events">
       <GatherBrand />
@@ -94,7 +103,7 @@ export default function EventsScreen() {
             <View style={styles.galaFrame}><Image source={gala} style={styles.gala} resizeMode="contain" accessible={false} /></View>
             <Text style={[styles.cardTitle, darkMode && styles.darkText]}>Gala&apos;s Insights</Text>
           </View>
-          <Text style={[styles.detail, darkMode && styles.darkText]}>You&apos;re making great progress! 12 guests haven&apos;t responded yet. It might be a good time to send a friendly RSVP reminder.</Text>
+          <Text style={[styles.detail, darkMode && styles.darkText]}>{awaiting ? `You're making great progress! ${awaiting} ${awaiting === 1 ? "guest hasn't" : "guests haven't"} responded yet. It might be a good time to send a friendly RSVP reminder.` : "Everyone in this sample guest list has a response."}</Text>
           <PageLink label="Ask Gala" href="/gala" />
         </View>}
       </View>
@@ -127,6 +136,7 @@ const styles = StyleSheet.create({
   progress: { height: 10, borderRadius: 6, backgroundColor: "#f6e5d8", flexDirection: "row", overflow: "hidden" },
   attendingBar: { backgroundColor: "#d89728" },
   declinedBar: { backgroundColor: "#efcb8f" },
+  maybeBar: { backgroundColor: "#8eaba8" },
   tasksBar: { backgroundColor: "#c65d58" },
   link: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" },
   linkText: { color: "#a43f3a", fontFamily: "DMSans_700Bold", fontSize: 14 },
