@@ -97,7 +97,7 @@ export default function LoginScreen() {
           error={passwordError}
           autoCapitalize="none"
           autoComplete="current-password"
-          secureTextEntry
+          revealPassword
           placeholder="Enter Password here..."
         />
         {authError && <Text style={[styles.error, darkMode && darkStyles.accent]} accessibilityLiveRegion="polite">{authError}</Text>}
