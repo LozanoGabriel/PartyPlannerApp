@@ -1,37 +1,62 @@
-import express from "express"
-import { getTasksFromSupabase, postTaskToSupabase, deleteTaskFromSupabase, patchTaskInSupabase } from "../database/functions"
+import express, { Response } from "express"
+import { getTasksFromSupabase, postTaskToSupabase, patchTaskInSupabase, deleteTaskFromSupabase } from "../database/task_logic"
+import { RSVPerror } from "../database/invitation_logic"
+import { requireAuth } from "../middleware/requireAuth"
 
-
-//This route is intended for the creation of Guests for an event.
+// This route is intended for the host's to-do list for an event.
 const router = express.Router()
 
-//Retrieves all of the users' tasks
-router.get("/", (req, res) => {
-    const jwt = req.body.jwt
-    res.json(getTasksFromSupabase(jwt))
+// Every route here is host-only. The token goes in the header: Authorization: Bearer <token>
+router.use(requireAuth)
+
+function handleError(res: Response, err: unknown, fallback: string) {
+    if (err instanceof RSVPerror) return res.status(err.status).json({ error: err.message })
+    console.error(err)
+    return res.status(500).json({ error: fallback })
+}
+
+// List all the tasks for an event
+router.get("/:eventId", async (req, res) => {
+    try {
+        const tasks = await getTasksFromSupabase(res.locals.userId, req.params.eventId)
+        return res.status(200).json({ tasks })
+    } catch (err) {
+        return handleError(res, err, "Could not load tasks")
+    }
 })
 
-//Retrieves event-specific tasks
-router.get("/:eventId", (req, res) => {
-    const jwt = req.body.jwt
-    const eventId = req.params.eventId
-    res.json(getTasksFromSupabase(jwt, eventId))
+// Create a task. Only title is required.
+// Body: { taskData: { title, dueDate?: "2026-12-01", status?, pillar?, assignedGuestId? } }
+router.post("/:eventId", async (req, res) => {
+    try {
+        if (!req.body?.taskData) throw new RSVPerror("taskData is required", 400)
+        const task = await postTaskToSupabase(res.locals.userId, req.params.eventId, req.body.taskData)
+        return res.status(201).json({ task })
+    } catch (err) {
+        return handleError(res, err, "Could not create task")
+    }
 })
 
-//Inserts a row for tasks
-router.post("/:eventId", (req, res) => {
-    const body = req.body
-    res.json(postTaskToSupabase(body.jwt, body.task_data))
-    //TODO: Must return task's ID
+// Update a task. Send only the fields that changed: { taskData: { status: "complete" } }
+// dueDate: null clears the due date, assignedGuestId: null unassigns the task
+router.patch("/:taskId", async (req, res) => {
+    try {
+        if (!req.body?.taskData) throw new RSVPerror("taskData is required", 400)
+        const task = await patchTaskInSupabase(res.locals.userId, req.params.taskId, req.body.taskData)
+        return res.status(200).json({ task })
+    } catch (err) {
+        return handleError(res, err, "Could not update task")
+    }
 })
 
-router.delete("/:taskId", (req, res) => {
-    const jwt = req.body.jwt
-    const taskId = req.params.taskId
-    res.json(deleteTaskFromSupabase(jwt,taskId)) 
+// Delete a task
+router.delete("/:taskId", async (req, res) => {
+    try {
+        await deleteTaskFromSupabase(res.locals.userId, req.params.taskId)
+        return res.status(204).send()
+    } catch (err) {
+        return handleError(res, err, "Could not delete task")
+    }
 })
 
-router.patch("/:taskId", (req, res) => {
-    const body = req.body
-    res.json(patchTaskInSupabase(body.jwt, body.task_data))
-})
+export default router

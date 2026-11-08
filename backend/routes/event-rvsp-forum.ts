@@ -1,6 +1,5 @@
 import express, { Response } from "express"
-import { getInvitationPage, postRSVPtoSupabase, getInvitationLink, RSVPerror } from "../database/invitation_logic"
-import { requireAuth } from "../middleware/requireAuth"
+import { getInvitationPage, postRSVPtoSupabase, RSVPerror } from "../database/invitation_logic"
 
 //TYPO IN MAIN FILE NAME!// This route is intended for RSVP
 // The guest routes are PUBLIC: the token in the URL is the credential, so there is no login.
@@ -35,14 +34,5 @@ router.post("/:eventId/:token/rsvp", async (req, res) => {
     }
 })
 
-// Generate Invitation link (host only)
-router.get("/:eventId/guests/:guestId/link", requireAuth, async (req, res) => {
-    try {
-        const link = await getInvitationLink(res.locals.userId, req.params.eventId, req.params.guestId)
-        return res.status(200).json({ link })
-    } catch (err) {
-        return handleError(res, err, "Could not build invitation link")
-    }
-})
 
 export default router

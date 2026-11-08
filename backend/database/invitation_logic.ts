@@ -68,29 +68,6 @@ export function buildInviteLink(eventId: string, token: string) {
     return `${FRONTEND_URL}/rsvp/${eventId}/${token}`;
 }
 
-// Generates a unique link for each guest to rsvp (host only)
-export async function getInvitationLink(hostId: string, eventId: string, guestId: string){
-    if (!eventId) throw new RSVPerror("eventId required", 400);
-    if (!guestId) throw new RSVPerror("guestId required", 400);
-
-    // events!inner makes sure the event belongs to this host
-    const { data, error } = await supabase
-        .from("guests")
-        .select("token, events!inner(host_id)") //security measure, keep guests id private
-        .eq("event_id", eventId)
-        .eq("id", guestId)
-        .eq("events.host_id", hostId)
-        .maybeSingle();
-
-    if (error){
-        if(error.code === "22P02") throw new RSVPerror("Invalid eventId or guestId", 400);
-        throw new RSVPerror(`Failed to load guest: ${error.message}`, 500);
-    }
-    if(!data) throw new RSVPerror("Guest not found", 404);
-
-    return buildInviteLink(eventId, data.token);
-}
-
 // The token is the only credential on the RSVP routes.
 // Bad ids and bad tokens give the same 404 so nobody can probe which part was wrong.
 async function loadGuestByToken(eventId: string, token: string, columns: string): Promise<any> {
