@@ -12,7 +12,7 @@ import guestRoutes from "./routes/guests"
 import invitationSettingsRoutes from "./routes/invitation-settings"
 import taskRoutes from "./routes/tasks"
 import rsvpRoutes from "./routes/event-rvsp-forum"
-// import galaRoutes from "./routes/gala"   // old route: only turn this back on if the app still uses it
+import galaRoutes from "./routes/gala"
 
 const app = express();
 app.use(cors());           // allows any origin: fine for the hackathon, can be limited to FRONTEND_URL later
