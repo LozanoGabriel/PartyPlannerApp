@@ -1,3 +1,16 @@
+
+
+
+
+
+
+
+
+
+
+
+-- THIS SCHEMA IS NO LONGER IN USE. SEE SCHEMA.PDF
+
 create type event_type_enum  as enum ('Conversation', 'Celebration', 'Dance Party', 'Family Gathering', 'Shared Meal');
 create type task_status      as enum ('not_started', 'in_progress', 'complete');
 create type pillar           as enum ('guests', 'food', 'venue_decor', 'budget', 'other');
