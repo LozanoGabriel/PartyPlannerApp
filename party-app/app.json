@@ -37,7 +37,7 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#ffa49f",
-          "image": "./assets/images/gather_frame_1.png",
+          "image": "./assets/images/gather_frame_4.png",
           "imageWidth": 240
         }
       ],
