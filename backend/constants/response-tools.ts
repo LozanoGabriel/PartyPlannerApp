@@ -1,5 +1,5 @@
 import type { eventCreationSteps } from "../../interfaces/event-creation-steps";
-import { EVENT_TYPES } from "./event-types";
+import { EVENT_CATEGORIES } from "./event-categories";
 
 type ResponseTool = {
   type: "function";
@@ -18,127 +18,114 @@ type ResponseTool = {
 const taskItemSchema = {
   type: "object",
   properties: {
-    task_name: {
-      type: "string",
-      description: "A concise title for the task.",
-    },
-    task_description: {
-      type: "string",
-      description: "Specific details for completing the task.",
-    },
+    task_name: { type: "string", maxLength: 80, description: "A concise title for the task." },
+    task_description: { type: "string", maxLength: 160, description: "One brief, actionable detail." },
   },
   required: ["task_name", "task_description"],
   additionalProperties: false,
 };
 
-export const RESPONSE_TOOLS: Record<eventCreationSteps, ResponseTool> = {
-  "Event Type": {
-    type: "function",
-    function: {
-      name: "create_gala_response",
-      description: "Return the event category selected from the available options.",
-      parameters: {
-        type: "object",
-        properties: {
-          event_type: {
-            type: "string",
-            enum: EVENT_TYPES,
-            description: "The best-fitting event category.",
-          },
-        },
-        required: ["event_type"],
-        additionalProperties: false,
-      },
-    },
+const budgetItemSchema = {
+  type: "object",
+  properties: {
+    item_name: { type: "string", maxLength: 80, description: "The budget item." },
+    item_description: { type: "string", maxLength: 160, description: "One brief reason it may be needed." },
   },
-  Name: {
+  required: ["item_name", "item_description"],
+  additionalProperties: false,
+};
+
+function responseTool(
+  description: string,
+  properties: Record<string, unknown> = {},
+): ResponseTool {
+  return {
     type: "function",
     function: {
       name: "create_gala_response",
-      description: "Return four fitting name ideas for the event.",
-      parameters: {
-        type: "object",
-        properties: {
-          names: {
-            type: "array",
-            description: "Four suggested event names.",
-            items: { type: "string" },
-          },
-        },
-        required: ["names"],
-        additionalProperties: false,
-      },
-    },
-  },
-  Prompt: {
-    type: "function",
-    function: {
-      name: "create_gala_response",
-      description: "Return the user-facing response to the user's request.",
+      description,
       parameters: {
         type: "object",
         properties: {
           english_response: {
             type: "string",
-            description: "A concise, friendly response to the user's request.",
+            maxLength: 320,
+            description: "At most two short sentences, no more than 45 words.",
           },
+          ...properties,
         },
         required: ["english_response"],
         additionalProperties: false,
       },
     },
-  },
-  Budget: {
-    type: "function",
-    function: {
-      name: "create_gala_response",
-      description: "Return items that should be added to the event budget.",
-      parameters: {
-        type: "object",
-        properties: {
-          budget_items: {
-            type: "array",
-            description: "Relevant items to include in the event budget.",
-            items: {
-              type: "object",
-              properties: {
-                item_name: {
-                  type: "string",
-                  description: "The budget item.",
-                },
-                item_description: {
-                  type: "string",
-                  description: "Why the item is needed or relevant.",
-                },
-              },
-              required: ["item_name", "item_description"],
-              additionalProperties: false,
-            },
-          },
-        },
-        required: ["budget_items"],
-        additionalProperties: false,
+  };
+}
+
+export const RESPONSE_TOOLS: Record<eventCreationSteps, ResponseTool> = {
+  "Event Type": responseTool(
+    "Explain which available event type best fits and why. Include event_type when enough information is available.",
+    {
+      event_type: {
+        type: "string",
+        enum: EVENT_CATEGORIES,
+        description: "The suggested event type, when a clear match can be made.",
       },
     },
-  },
-  Task: {
-    type: "function",
-    function: {
-      name: "create_gala_response",
-      description: "Return an array of actionable event tasks.",
-      parameters: {
-        type: "object",
-        properties: {
-          tasks: {
-            type: "array",
-            description:
-              "All relevant actionable tasks; choose the number needed and do not pad the list.",
-            items: taskItemSchema,
-          },
-        },
-        required: ["tasks"],
-        additionalProperties: false,
+  ),
+  Name: responseTool(
+    "Help name the event and provide several fitting name suggestions.",
+    {
+      names: {
+        type: "array",
+        maxItems: 3,
+        description: "Up to three original, relevant event name suggestions.",
+        items: { type: "string", maxLength: 80 },
       },
     },
-  },
+  ),
+  "Event Settings": responseTool(
+    "Give practical advice about the event settings shown to the user.",
+    {
+      settings_suggestions: {
+        type: "array",
+        maxItems: 3,
+        description: "Up to three brief optional setting ideas.",
+        items: { type: "string", maxLength: 160 },
+      },
+    },
+  ),
+  "Guest List": responseTool(
+    "Help the user think through their guest list without inventing or adding guests.",
+    {
+      guest_tips: {
+        type: "array",
+        maxItems: 3,
+        description: "Up to three brief, practical guest-list tips.",
+        items: { type: "string", maxLength: 160 },
+      },
+    },
+  ),
+  Budget: responseTool(
+    "Suggest relevant event budget categories without inventing prices or implying they were saved.",
+    {
+      budget_items: {
+        type: "array",
+        maxItems: 3,
+        description: "Up to three relevant budget categories with a brief explanation.",
+        items: budgetItemSchema,
+      },
+    },
+  ),
+  Prompt: responseTool("Answer the user's event-planning request."),
+  Task: responseTool(
+    "Suggest actionable planning tasks without implying they were saved.",
+    {
+      tasks: {
+        type: "array",
+        maxItems: 3,
+        description: "Up to three brief, relevant actionable tasks.",
+        items: taskItemSchema,
+      },
+    },
+  ),
 };

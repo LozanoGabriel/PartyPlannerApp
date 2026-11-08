@@ -1,5 +1,5 @@
 import express, { Response } from "express"
-import { createEvent, deleteEventSupabase, patchEventInSupabase } from "../database/event_logic"
+import { createEvent, deleteEventSupabase, getEventFromSupabase, getEventsFromSupabase, patchEventInSupabase } from "../database/event_logic"
 import { RSVPerror } from "../database/invitation_logic"
 import { requireAuth } from "../middleware/requireAuth"
 
@@ -17,6 +17,24 @@ function handleError(res: Response, err: unknown, fallback: string) {
 }
 
 // Create an event. Returns { event } including event.id
+router.get("/", async (_req, res) => {
+    try {
+        const events = await getEventsFromSupabase(res.locals.userId)
+        return res.status(200).json({ events })
+    } catch (err) {
+        return handleError(res, err, "Could not load events")
+    }
+})
+
+router.get("/:eventId", async (req, res) => {
+    try {
+        const event = await getEventFromSupabase(res.locals.userId, req.params.eventId)
+        return res.status(200).json({ event })
+    } catch (err) {
+        return handleError(res, err, "Could not load event")
+    }
+})
+
 router.post("/", async (req, res) => {
     try {
         if (!req.body?.eventDetails) throw new RSVPerror("eventDetails is required", 400)

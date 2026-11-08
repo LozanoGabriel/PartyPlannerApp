@@ -1,134 +1,190 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Href, router, useNavigation } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { DashboardLayout } from "./dashboard-layout";
-import { GatherBrand } from "./gather-brand";
-import { SaveChangesDialog } from "./save-changes-dialog";
+import { EventSelector } from "./event-selector";
 import { TaskDatePicker } from "./task-date-picker";
-import { taskExamples } from "./task-examples";
 import { useAppPreferences } from "./app-preferences";
 import { darkPalette } from "./dark-palette";
+import { EventRecord, getEvents } from "../lib/events-api";
+import { EventGuest, getGuests } from "../lib/guests-api";
+import { createTask, deleteTask, EventTask, getTasks, updateTask } from "../lib/tasks-api";
 
-const guests = ["Me", "Claribel Hernandez", "Cristian Mantilla", "Gabriel Lozano"];
-type Draft = { event: string; title: string; date: Date | null; assignee: string; notes: string };
-const emptyDraft: Draft = { event: "", title: "", date: null, assignee: "Me", notes: "" };
+type Draft = { title: string; date: Date | null; assignedGuestId: string | null };
+const emptyDraft: Draft = { title: "", date: null, assignedGuestId: null };
 
-function exampleDraft(id: string): Draft {
-  const task = taskExamples.find((item) => item.id === id);
-  return task ? { event: "Mario's Birthday Party", title: task.title, date: null, assignee: task.assignee, notes: "" } : emptyDraft;
+function draftFromTask(task: EventTask): Draft {
+  return {
+    title: task.title,
+    date: task.due_date ? new Date(`${task.due_date}T00:00:00`) : null,
+    assignedGuestId: task.assigned_guest_id,
+  };
+}
+
+function dateToString(date: Date | null) {
+  if (!date) return null;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 export function TaskForm({ mode, initialTask }: { mode: "create" | "edit"; initialTask?: string }) {
   const { darkMode } = useAppPreferences();
-  const [selected, setSelected] = useState(taskExamples.some((task) => task.id === initialTask) ? initialTask : undefined);
-  const [draft, setDraft] = useState<Draft>(() => initialTask ? exampleDraft(initialTask) : emptyDraft);
-  const [baseline, setBaseline] = useState<Draft>(() => initialTask ? exampleDraft(initialTask) : emptyDraft);
+  const { eventId: routeEventId } = useLocalSearchParams<{ eventId?: string }>();
+  const [events, setEvents] = useState<EventRecord[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState(routeEventId ?? "");
+  const [tasks, setTasks] = useState<EventTask[]>([]);
+  const [guests, setGuests] = useState<EventGuest[]>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState(initialTask ?? "");
+  const [draft, setDraft] = useState<Draft>(emptyDraft);
+  const [baseline, setBaseline] = useState<Draft>(emptyDraft);
   const [taskMenu, setTaskMenu] = useState(false);
-  const [guestMenu, setGuestMenu] = useState(false);
-  const [dialog, setDialog] = useState<"leave" | "save" | "select" | null>(null);
-  const [discardPrompt, setDiscardPrompt] = useState(false);
-  const [notice, setNotice] = useState("");
-  const [previewEdits, setPreviewEdits] = useState<Record<string, Draft>>({});
-  const pending = useRef<(() => void) | null>(null);
-  const allowLeave = useRef(false);
-  const navigation = useNavigation();
-  const changed = draft.event !== baseline.event || draft.title !== baseline.title || draft.date?.getTime() !== baseline.date?.getTime() || draft.assignee !== baseline.assignee || draft.notes !== baseline.notes;
-  const hasPreview = changed || Object.keys(previewEdits).length > 0;
-
-  useEffect(() => navigation.addListener("beforeRemove", (event) => {
-    if (!hasPreview || allowLeave.current) return;
-    event.preventDefault();
-    pending.current = () => navigation.dispatch(event.data.action);
-    setDialog("leave");
-  }), [hasPreview, navigation]);
+  const [assigneeMenu, setAssigneeMenu] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const selectedTask = tasks.find((task) => task.id === selectedTaskId);
+  const changed = draft.title !== baseline.title || draft.date?.getTime() !== baseline.date?.getTime() || draft.assignedGuestId !== baseline.assignedGuestId;
+  const guestName = useMemo(() => new Map(guests.map((guest) => [guest.id, guest.name])), [guests]);
+  const assigneeLabel = draft.assignedGuestId ? guestName.get(draft.assignedGuestId) ?? "Guest" : "Me";
 
   useEffect(() => {
-    if (Platform.OS !== "web" || !hasPreview) return;
-    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
-    window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
-  }, [hasPreview]);
+    let active = true;
+    getEvents().then((items) => {
+      if (!active) return;
+      setEvents(items);
+      setSelectedEventId((current) => items.some((event) => event.id === current) ? current : items.find((event) => event.id === routeEventId)?.id ?? items[0]?.id ?? "");
+    }).catch((reason: unknown) => {
+      if (active) setError(reason instanceof Error ? reason.message : "Could not load events.");
+    }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [routeEventId]);
 
-  function leave() {
-    allowLeave.current = true;
-    setDialog(null);
-    setDiscardPrompt(false);
-    if (pending.current) pending.current();
-    else router.replace("/events");
-  }
+  useEffect(() => {
+    let active = true;
+    setTasks([]);
+    setGuests([]);
+    setSelectedTaskId("");
+    setDraft(emptyDraft);
+    setBaseline(emptyDraft);
+    if (!selectedEventId) return () => { active = false; };
+    setLoading(true);
+    Promise.all([getTasks(selectedEventId), getGuests(selectedEventId)]).then(([nextTasks, nextGuests]) => {
+      if (!active) return;
+      setTasks(nextTasks);
+      setGuests(nextGuests);
+      if (mode === "edit") {
+        const task = nextTasks.find((item) => item.id === initialTask) ?? nextTasks[0];
+        if (task) {
+          setSelectedTaskId(task.id);
+          setDraft(draftFromTask(task));
+          setBaseline(draftFromTask(task));
+        }
+      }
+      setError("");
+    }).catch((reason: unknown) => {
+      if (active) setError(reason instanceof Error ? reason.message : "Could not load tasks.");
+    }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [selectedEventId, mode, initialTask]);
 
-  function navigate(href: Href) {
-    pending.current = () => router.replace(href);
-    setDialog("leave");
-  }
-
-  function selectTask(id: string) {
-    const next = previewEdits[id] || exampleDraft(id);
-    setSelected(id);
+  function chooseTask(task: EventTask) {
+    const next = draftFromTask(task);
+    setSelectedTaskId(task.id);
     setDraft(next);
     setBaseline(next);
     setTaskMenu(false);
-    setNotice("");
+    setError("");
   }
 
-  function save() {
-    if (!selected || !draft.event.trim() || !draft.title.trim()) {
-      setDialog(null);
-      setNotice("Enter an event and task name before saving a preview.");
-      return;
+  async function save() {
+    if (!selectedEventId) { setError("Choose an event before saving a task."); return; }
+    if (!draft.title.trim()) { setError("Enter a task title."); return; }
+    setSaving(true);
+    setError("");
+    try {
+      if (mode === "create") {
+        await createTask(selectedEventId, {
+          title: draft.title.trim(),
+          dueDate: dateToString(draft.date),
+          assignedGuestId: draft.assignedGuestId,
+        });
+      } else {
+        if (!selectedTaskId) { setError("Choose a task to edit."); return; }
+        await updateTask(selectedTaskId, {
+          title: draft.title.trim(),
+          dueDate: dateToString(draft.date),
+          assignedGuestId: draft.assignedGuestId,
+        });
+      }
+      router.replace({ pathname: "/tasks", params: { eventId: selectedEventId } });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not save task.");
+    } finally {
+      setSaving(false);
     }
-    setPreviewEdits({ ...previewEdits, [selected]: draft });
-    setBaseline(draft);
-    setDialog(null);
-    setNotice("Preview updated for this page only. Nothing was saved to a server.");
   }
 
-  const overlay = discardPrompt ? (
-    <View style={[styles.discardPrompt, darkMode && styles.darkPanel]} accessibilityLiveRegion="polite">
-      <Text style={[styles.discardText, darkMode && styles.darkText]}>Discard this task and return to Events?</Text>
-      <View style={styles.discardButtons}>
-        <Pressable accessibilityRole="button" onPress={() => { pending.current = null; leave(); }} style={styles.promptButton}><Text style={[styles.buttonText, darkMode && styles.darkAccent]}>Discard Task</Text></Pressable>
-        <Pressable accessibilityRole="button" onPress={() => setDiscardPrompt(false)} style={styles.promptButton}><Text style={[styles.buttonText, darkMode && styles.darkAccent]}>Keep Editing</Text></Pressable>
-      </View>
-    </View>
-  ) : undefined;
+  async function removeTask() {
+    if (!selectedTaskId) return;
+    setSaving(true);
+    setError("");
+    try {
+      await deleteTask(selectedTaskId);
+      router.replace({ pathname: "/tasks", params: { eventId: selectedEventId } });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not delete task.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
-    <DashboardLayout active="Tasks" onNavigate={navigate} overlay={overlay}>
-      <GatherBrand />
+    <DashboardLayout active="Tasks">
       <View style={styles.card}>
-        <Text style={styles.title} accessibilityRole="header">{mode === "create" ? "Create a task" : "Edit Tasks"}</Text>
-        <Text style={styles.notice}>Tasks are not saved to a server.</Text>
-        {mode === "edit" && <>
-          <Text style={styles.label}>Choose a task</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Choose a task" accessibilityState={{ expanded: taskMenu }} onPress={() => setTaskMenu(!taskMenu)} style={[styles.select, darkMode && styles.darkPanel]}>
-            <Text style={[styles.inputText, darkMode && styles.darkText]}>{selected ? taskExamples.find((item) => item.id === selected)?.title : "Select a task"}</Text>
-            <Ionicons name={taskMenu ? "chevron-up" : "chevron-down"} size={20} color={darkMode ? darkPalette.accent : "#a43f3a"} />
-          </Pressable>
-          {taskMenu && <View style={[styles.options, darkMode && styles.darkPanel]}>{taskExamples.map((task) => <Pressable key={task.id} accessibilityRole="button" onPress={() => {
-            if (changed) { pending.current = () => selectTask(task.id); setDialog("select"); }
-            else selectTask(task.id);
-          }} style={styles.option}><Text style={[styles.inputText, darkMode && styles.darkText]}>{task.title}</Text></Pressable>)}</View>}
+        <Text style={styles.title} accessibilityRole="header">{mode === "create" ? "Create a task" : "Edit task"}</Text>
+        <View style={styles.field}>
+          <Text style={styles.label}>Event</Text>
+          {events.length > 0
+            ? <EventSelector events={events} selectedId={selectedEventId} onSelect={setSelectedEventId} label="Choose an event" />
+            : <Text style={styles.notice}>{loading ? "Loading events..." : "Create an event before adding tasks."}</Text>}
+        </View>
+        {mode === "edit" && selectedEventId && <>
+          <View style={styles.field}>
+            <Text style={styles.label}>Choose a task</Text>
+            <Pressable accessibilityRole="button" accessibilityState={{ expanded: taskMenu }} onPress={() => setTaskMenu(!taskMenu)} style={[styles.select, darkMode && styles.darkPanel]}>
+              <Text style={[styles.inputText, darkMode && styles.darkText]}>{selectedTask?.title ?? (loading ? "Loading tasks..." : "Select a task")}</Text>
+              <Ionicons name={taskMenu ? "chevron-up" : "chevron-down"} size={20} color={darkMode ? darkPalette.accent : "#a43f3a"} />
+            </Pressable>
+            {taskMenu && <View style={[styles.options, darkMode && styles.darkPanel]}>{tasks.map((task) => (
+              <Pressable key={task.id} accessibilityRole="button" onPress={() => chooseTask(task)} style={styles.option}>
+                <Text style={[styles.inputText, darkMode && styles.darkText]}>{task.title}</Text>
+              </Pressable>
+            ))}</View>}
+          </View>
         </>}
-        {(mode === "create" || selected) && <>
-          <View style={styles.field}><Text style={styles.label}>Event</Text><TextInput accessibilityLabel="Event" value={draft.event} onChangeText={(event) => setDraft({ ...draft, event })} placeholder="Mario's Birthday Party" placeholderTextColor={darkMode ? darkPalette.placeholder : "#777777"} style={[styles.input, darkMode && styles.darkInput]} /></View>
-          <View style={styles.field}><Text style={styles.label}>What needs to get done?</Text><TextInput accessibilityLabel="What needs to get done?" value={draft.title} onChangeText={(title) => setDraft({ ...draft, title })} placeholder="What needs to get done?" placeholderTextColor={darkMode ? darkPalette.placeholder : "#777777"} style={[styles.input, darkMode && styles.darkInput]} /></View>
-          <View style={styles.field}><Text style={styles.label}>Due Date</Text><TaskDatePicker value={draft.date} onChange={(date) => setDraft({ ...draft, date })} /></View>
+        {(mode === "create" || selectedTask) && <>
+          <View style={styles.field}><Text style={styles.label}>What needs to get done?</Text><TextInput accessibilityLabel="Task title" value={draft.title} onChangeText={(title) => { setDraft((current) => ({ ...current, title })); setError(""); }} placeholder="Enter a task" placeholderTextColor={darkMode ? darkPalette.placeholder : "#777777"} maxLength={200} style={[styles.input, darkMode && styles.darkInput]} /></View>
+          <View style={styles.field}><Text style={styles.label}>Due Date (optional)</Text><TaskDatePicker value={draft.date} onChange={(date) => setDraft((current) => ({ ...current, date }))} /></View>
           <View style={styles.field}>
             <Text style={styles.label}>Assign to</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="Assign to" accessibilityState={{ expanded: guestMenu }} onPress={() => setGuestMenu(!guestMenu)} style={[styles.select, darkMode && styles.darkPanel]}>
-              <Text style={[styles.inputText, darkMode && styles.darkText]}>{draft.assignee}</Text><Ionicons name={guestMenu ? "chevron-up" : "chevron-down"} size={20} color={darkMode ? darkPalette.accent : "#a43f3a"} />
+            <Pressable accessibilityRole="button" accessibilityState={{ expanded: assigneeMenu }} onPress={() => setAssigneeMenu(!assigneeMenu)} style={[styles.select, darkMode && styles.darkPanel]}>
+              <Text style={[styles.inputText, darkMode && styles.darkText]}>{assigneeLabel}</Text>
+              <Ionicons name={assigneeMenu ? "chevron-up" : "chevron-down"} size={20} color={darkMode ? darkPalette.accent : "#a43f3a"} />
             </Pressable>
-            {guestMenu && <View style={[styles.options, darkMode && styles.darkPanel]}>{guests.map((guest) => <Pressable key={guest} accessibilityRole="button" onPress={() => { setDraft({ ...draft, assignee: guest }); setGuestMenu(false); }} style={styles.option}><Text style={[styles.inputText, darkMode && styles.darkText]}>{guest}</Text></Pressable>)}</View>}
+            {assigneeMenu && <View style={[styles.options, darkMode && styles.darkPanel]}>
+              <Pressable accessibilityRole="button" onPress={() => { setDraft((current) => ({ ...current, assignedGuestId: null })); setAssigneeMenu(false); }} style={styles.option}><Text style={[styles.inputText, darkMode && styles.darkText]}>Me</Text></Pressable>
+              {guests.map((guest) => <Pressable key={guest.id} accessibilityRole="button" onPress={() => { setDraft((current) => ({ ...current, assignedGuestId: guest.id })); setAssigneeMenu(false); }} style={styles.option}><Text style={[styles.inputText, darkMode && styles.darkText]}>{guest.name}</Text></Pressable>)}
+            </View>}
           </View>
-          <View style={styles.field}><Text style={styles.label}>Notes (optional)</Text><TextInput accessibilityLabel="Notes (optional)" value={draft.notes} onChangeText={(notes) => setDraft({ ...draft, notes })} placeholder="Add more details..." placeholderTextColor={darkMode ? darkPalette.placeholder : "#777777"} multiline style={[styles.input, styles.notes, darkMode && styles.darkInput]} /></View>
-          {!!notice && <Text style={styles.notice} accessibilityLiveRegion="polite">{notice}</Text>}
-          {mode === "create" ? <Pressable accessibilityRole="button" onPress={() => setNotice("Task creation is not connected yet. Nothing was saved.")} style={[styles.button, darkMode && styles.darkPanel]}><Text style={[styles.buttonText, darkMode && styles.darkAccent]}>Create Task</Text></Pressable> : <Pressable accessibilityRole="button" disabled={!changed} accessibilityState={{ disabled: !changed }} onPress={() => setDialog("save")} style={[styles.button, darkMode && styles.darkPanel, !changed && styles.disabled]}><Text style={[styles.buttonText, darkMode && styles.darkAccent]}>Save Changes</Text></Pressable>}
+          <Text style={styles.hint}>Task notes are not supported by the current database.</Text>
+          <Pressable accessibilityRole="button" accessibilityState={{ disabled: saving }} disabled={saving} onPress={() => { void save(); }} style={[styles.button, darkMode && styles.darkPanel, saving && styles.disabled]}>
+            <Text style={[styles.buttonText, darkMode && styles.darkAccent]}>{saving ? "Saving..." : mode === "create" ? "Create Task" : "Save Changes"}</Text>
+          </Pressable>
+          {mode === "edit" && <Pressable accessibilityRole="button" accessibilityState={{ disabled: saving }} disabled={saving} onPress={() => { void removeTask(); }} style={styles.deleteButton}><Text style={styles.deleteText}>Delete Task</Text></Pressable>}
         </>}
-        <Pressable accessibilityRole="button" onPress={() => setDiscardPrompt(true)} style={styles.back}><Text style={styles.backText}>{mode === "create" ? "Discard Task" : "Back to Events"}</Text></Pressable>
+        {!!error && <Text style={styles.error} accessibilityRole="alert">{error}</Text>}
+        <Pressable accessibilityRole="button" onPress={() => router.replace({ pathname: "/tasks", params: { eventId: selectedEventId } })} style={styles.back}><Text style={styles.backText}>Back to Tasks</Text></Pressable>
       </View>
-      <SaveChangesDialog visible={dialog !== null} onClose={() => { pending.current = null; setDialog(null); }} onSave={dialog === "save" ? save : undefined} onDiscard={dialog === "select" ? () => { setDialog(null); pending.current?.(); pending.current = null; } : dialog === "leave" ? leave : undefined} message={dialog === "save" ? "This edit is only available on this page and will be lost when you leave." : "Task saving is not connected. Leaving or switching tasks will discard unsaved changes."} />
     </DashboardLayout>
   );
 }
@@ -145,17 +201,16 @@ const styles = StyleSheet.create({
   label: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 15 },
   input: { minHeight: 48, borderRadius: 10, backgroundColor: "#ffffff", color: "#1e1e1e", fontFamily: "DMSans_400Regular", fontSize: 16, paddingHorizontal: 12, paddingVertical: 10 },
   inputText: { flexShrink: 1, color: "#1e1e1e", fontFamily: "DMSans_400Regular", fontSize: 16 },
-  notes: { minHeight: 80, textAlignVertical: "top" },
   select: { minHeight: 48, borderRadius: 10, backgroundColor: "#ffffff", paddingHorizontal: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  options: { borderRadius: 10, backgroundColor: "#ffffff", paddingHorizontal: 12 },
+  options: { borderRadius: 10, backgroundColor: "#ffffff", paddingHorizontal: 12, maxHeight: 200, overflow: "scroll" },
   option: { minHeight: 44, justifyContent: "center", borderBottomWidth: 1, borderBottomColor: "#eeeeee" },
+  hint: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 12 },
   button: { minHeight: 48, borderRadius: 24, backgroundColor: "#ffffff", alignItems: "center", justifyContent: "center", padding: 12 },
   disabled: { opacity: 0.6 },
   buttonText: { color: "#a43f3a", fontFamily: "DMSans_700Bold", fontSize: 15, textAlign: "center" },
+  deleteButton: { minHeight: 44, alignItems: "center", justifyContent: "center" },
+  deleteText: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 14, textDecorationLine: "underline" },
+  error: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 14 },
   back: { minHeight: 48, alignItems: "center", justifyContent: "center" },
   backText: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 15, textDecorationLine: "underline" },
-  discardPrompt: { width: "100%", maxWidth: 450, borderRadius: 16, backgroundColor: "#ffffff", padding: 12, gap: 6 },
-  discardText: { color: "#3d2423", fontFamily: "DMSans_700Bold", fontSize: 14, textAlign: "center" },
-  discardButtons: { flexDirection: "row", justifyContent: "space-around" },
-  promptButton: { minHeight: 44, justifyContent: "center", paddingHorizontal: 8 },
 });

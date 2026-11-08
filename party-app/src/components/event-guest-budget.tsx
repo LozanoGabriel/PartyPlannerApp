@@ -4,13 +4,14 @@ import { EventFlowButtons } from "./event-flow";
 import { BudgetChoice, useEventSettings } from "./event-settings-context";
 import { useAppPreferences } from "./app-preferences";
 import { darkPalette } from "./dark-palette";
+import { GalaAssistant } from "./gala-assistant";
 
 const gala = require("../../assets/images/gala_front_facing.png");
 const MAX_GUESTS = 999999999;
 
-type StepProps = { onBack: () => void; onContinue: () => void };
+type StepProps = { onBack: () => void; onContinue: () => void; eventDetails: Record<string, unknown> };
 
-export function GuestStep({ onBack, onContinue }: StepProps) {
+export function GuestStep({ onBack, onContinue, eventDetails }: StepProps) {
   const { darkMode } = useAppPreferences();
   const { guestCount, setGuestCount } = useEventSettings();
   const valid = guestCount === "" || (/^\d+$/.test(guestCount) && Number(guestCount) <= MAX_GUESTS);
@@ -20,16 +21,21 @@ export function GuestStep({ onBack, onContinue }: StepProps) {
     <>
       <View style={styles.intro}>
         <Text style={styles.title} accessibilityRole="header">Who&apos;s Invited?</Text>
-        <Text style={styles.subtitle}>Start adding guests now, or come back to this later.</Text>
+        <Text style={styles.subtitle}>Set an expected headcount now. Individual guests can be added after the event is created.</Text>
       </View>
+      <GalaAssistant
+        context="Guest List"
+        eventDetails={eventDetails}
+        hint="Ask Gala for help estimating attendance."
+      />
       <View style={styles.card}>
-        <Text style={styles.cardTitle} accessibilityRole="header">Create Guest List</Text>
+        <Text style={styles.cardTitle} accessibilityRole="header">Expected Attendance</Text>
         <Text style={styles.subtitle}>What is the total headcount of attendees (not including plus ones)?</Text>
         <View style={styles.counter}>
           <Pressable accessibilityRole="button" accessibilityLabel="Decrease guest count" accessibilityState={{ disabled: count === 0 }} disabled={count === 0} onPress={() => setGuestCount(String(count - 1))} style={[styles.counterButton, darkMode && styles.darkPanel, count === 0 && styles.disabled]}>
             <Ionicons name="remove" size={24} color={darkMode ? darkPalette.accent : "#c65d58"} />
           </Pressable>
-          <TextInput accessibilityLabel="Guest headcount" value={guestCount} onChangeText={setGuestCount} keyboardType="number-pad" maxLength={9} placeholder="0" placeholderTextColor={darkMode ? darkPalette.placeholder : "#666666"} style={[styles.countInput, darkMode && styles.darkInput]} />
+          <TextInput accessibilityLabel="Guest headcount" value={guestCount} onChangeText={setGuestCount} keyboardType="number-pad" maxLength={9} placeholder="Count" placeholderTextColor={darkMode ? darkPalette.placeholder : "#666666"} style={[styles.countInput, darkMode && styles.darkInput]} />
           <Pressable accessibilityRole="button" accessibilityLabel="Increase guest count" accessibilityState={{ disabled: count >= MAX_GUESTS }} disabled={count >= MAX_GUESTS} onPress={() => setGuestCount(String(count + 1))} style={[styles.counterButton, darkMode && styles.darkPanel, count >= MAX_GUESTS && styles.disabled]}>
             <Ionicons name="add" size={24} color={darkMode ? darkPalette.accent : "#c65d58"} />
           </Pressable>
@@ -42,7 +48,7 @@ export function GuestStep({ onBack, onContinue }: StepProps) {
   );
 }
 
-export function BudgetStep({ onBack, onContinue }: StepProps) {
+export function BudgetStep({ onBack, onContinue, eventDetails }: StepProps) {
   const { darkMode, aiSuggestions } = useAppPreferences();
   const { budgetChoice, setBudgetChoice, budgetAmount, setBudgetAmount } = useEventSettings();
   const validAmount = /^\d{1,9}(\.\d{1,2})?$/.test(budgetAmount);
@@ -64,9 +70,14 @@ export function BudgetStep({ onBack, onContinue }: StepProps) {
   return (
     <>
       <Text style={styles.title} accessibilityRole="header">Set Your Budget</Text>
+      <GalaAssistant
+        context="Budget"
+        eventDetails={eventDetails}
+        hint="Ask Gala for budget categories—no prices needed."
+      />
       <View style={styles.card}>
         <Text style={styles.cardTitle} accessibilityRole="header">How much would you like to spend?</Text>
-        <Text style={styles.subtitle}>{aiSuggestions ? "Set an overall budget. Gala can help you distribute it across your expenses." : "Set an overall budget for your event, or skip this step."}</Text>
+        <Text style={styles.subtitle}>{aiSuggestions ? "Set an overall budget. Ask Gala for relevant expense categories." : "Set an overall budget for your event, or skip this step."}</Text>
         <View style={[styles.total, darkMode && styles.darkPanel]}>
           <Text style={[styles.totalTitle, darkMode && styles.darkText]}>Your Total Budget</Text>
           {budgetChoice === "manual" ? (
@@ -79,14 +90,16 @@ export function BudgetStep({ onBack, onContinue }: StepProps) {
             </>
           ) : (
             <>
-              <Text style={[styles.amount, darkMode && styles.darkText]}>$1,000.00</Text>
-              <Text style={[styles.example, darkMode && styles.darkText]}>Example only</Text>
+              <Text style={[styles.amount, darkMode && styles.darkText]}>Not set</Text>
+              <Text style={[styles.example, darkMode && styles.darkText]}>
+                {budgetChoice === "generate" ? "Gala can suggest expense categories below." : "Choose a budget option or skip."}
+              </Text>
             </>
           )}
         </View>
         <Text style={styles.helpTitle}>{aiSuggestions ? "Would you like Gala to help?" : "Choose a budget approach"}</Text>
         <View style={styles.options} accessibilityRole="radiogroup" accessibilityLabel="Budget approach">
-          {aiSuggestions && option("generate", "Generate a Budget", "I'll suggest how to distribute your budget across venue, food, decorations, entertainment, and other expenses.", "gala")}
+          {aiSuggestions && option("generate", "Get Budget Suggestions", "Ask Gala for relevant expense categories. No prices or expenses are saved.", "gala")}
           {option("manual", "I'll Do It Myself", "Enter a total budget manually.", "pencil")}
           <Pressable accessibilityRole="radio" accessibilityLabel="Skip for now" accessibilityState={{ checked: budgetChoice === "skip" }} aria-checked={budgetChoice === "skip"} onPress={() => setBudgetChoice("skip")} style={[styles.skip, budgetChoice === "skip" && styles.selected]}>
             <Text style={styles.optionTitle}>Skip for now</Text>
@@ -97,7 +110,7 @@ export function BudgetStep({ onBack, onContinue }: StepProps) {
           {budgetChoice === "manual"
             ? "This total will be saved with the event."
             : budgetChoice === "generate"
-              ? "Budget generation is not connected yet."
+              ? "Gala's suggestions are guidance only; no expense items will be saved."
               : "You can set a budget later."}
         </Text>
       </View>

@@ -1,8 +1,11 @@
-import { EVENT_TYPES } from "./event-types"
+import { EVENT_CATEGORIES } from "./event-categories";
+
 export const GALA_TASKS = {
-    "Event Type" : "Based on the information given, determine what category this event falls under. The options are " + EVENT_TYPES,
-    "Name" : "Based on the information given, determine what the 4 best fitting names would be.",
-    "Prompt" : "Based on the information given and the context given, determine the output that would best assist the user.",
-    "Budget" : "Based on the information given, determine the required items that need to be added to a budget list.",
-    "Task" : "Based on the information given, determine what tasks should be considered to make the event happen. "
-}
+  "Event Type": `Help the user choose the best-fitting event type from: ${EVENT_CATEGORIES.join(", ")}. Give a brief reason and include the best matching type when appropriate.`,
+  Name: "Help the user name this event. Suggest several original names that fit the details and any style they requested.",
+  "Event Settings": "Help the user make practical event settings based on the information available. Offer optional duration, food, drink, or timeline ideas without claiming they have been saved or chosen.",
+  "Guest List": "Help the user plan their guest list and headcount. Do not invent actual guests or claim any guests have been added.",
+  Budget: "Help the user plan a realistic event budget. Suggest relevant expense items and explain why they may be needed. Do not imply that any amounts or items have been saved.",
+  Prompt: "Answer the user's event-planning request using the provided context and details.",
+  Task: "Suggest actionable planning tasks that fit the event. Do not imply that any tasks have been saved.",
+} satisfies Record<string, string>;

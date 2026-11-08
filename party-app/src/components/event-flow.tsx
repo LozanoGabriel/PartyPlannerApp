@@ -1,6 +1,6 @@
 import { ReactNode, useState } from "react";
 import { router } from "expo-router";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { DashboardLayout } from "./dashboard-layout";
 import { useAppPreferences } from "./app-preferences";
 import { darkPalette } from "./dark-palette";
@@ -8,23 +8,6 @@ import { useEventSettings } from "./event-settings-context";
 import { SaveChangesDialog } from "./save-changes-dialog";
 
 const TOTAL_STEPS = 5;
-const gala = require("../../assets/images/gala_front_facing.png");
-
-export function GalaMessage({ heading, children }: { heading: string; children: string }) {
-  const { darkMode, aiSuggestions } = useAppPreferences();
-  if (!aiSuggestions) return null;
-  return (
-    <View style={[styles.galaBox, darkMode && styles.darkPanel]}>
-      <View style={styles.galaFrame}>
-        <Image source={gala} style={styles.gala} resizeMode="contain" accessible={false} />
-      </View>
-      <View style={styles.galaText}>
-        <Text style={[styles.galaHeading, darkMode && styles.darkAccent]}>{heading}</Text>
-        <Text style={[styles.galaMessage, darkMode && styles.darkText]}>{children}</Text>
-      </View>
-    </View>
-  );
-}
 
 export function EventFlowLayout({ step, children }: { step: number; children: ReactNode }) {
   return (
@@ -61,7 +44,7 @@ export function BackToDashboard() {
       <Pressable style={[styles.dashboardButton, darkMode && styles.darkPanel]} accessibilityRole="button" onPress={() => setVisible(true)}>
         <Text style={[styles.buttonText, darkMode && styles.darkAccent]}>Back to Dashboard</Text>
       </Pressable>
-      <SaveChangesDialog visible={visible} title="Are you sure?" message="Leaving will discard this event planning preview." saveLabel="Leave Preview" cancelLabel="Stay Here" onClose={() => setVisible(false)} onSave={() => { setVisible(false); resetPreview(); router.replace("/dashboard"); }} />
+      <SaveChangesDialog visible={visible} title="Are you sure?" message="Leaving will discard the event details you entered. The event has not been created." saveLabel="Leave Event Setup" cancelLabel="Stay Here" onClose={() => setVisible(false)} onSave={() => { setVisible(false); resetPreview(); router.replace("/dashboard"); }} />
     </>
   );
 }
@@ -108,10 +91,4 @@ const styles = StyleSheet.create({
   button: { flex: 1, minHeight: 48, backgroundColor: "#ffffff", borderRadius: 24, justifyContent: "center", alignItems: "center", padding: 12 },
   buttonText: { color: "#c65d58", fontFamily: "DMSans_700Bold", fontSize: 16, textAlign: "center" },
   disabled: { opacity: 0.55 },
-  galaBox: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#ffffff", borderRadius: 18, padding: 10 },
-  galaFrame: { width: 52, height: 52, overflow: "hidden", alignItems: "center", justifyContent: "center" },
-  gala: { width: 86, height: 86 },
-  galaText: { flex: 1, gap: 2 },
-  galaHeading: { color: "#c65d58", fontFamily: "DMSans_700Bold", fontSize: 16 },
-  galaMessage: { color: "#3d2423", fontFamily: "DMSans_400Regular", fontSize: 13, lineHeight: 17 },
 });

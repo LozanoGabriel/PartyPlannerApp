@@ -1,10 +1,16 @@
 import { mockEventDetails } from "../mock-data";
 
 async function sendPostToGala() {
+    const accessToken = process.env.SUPABASE_ACCESS_TOKEN;
+    if (!accessToken) {
+        throw new Error("Set SUPABASE_ACCESS_TOKEN to a valid Supabase access token before testing Gala.");
+    }
+
     const response = await fetch("http://127.0.0.1:3000/api/gala", {
         method: "POST",
         headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
             context: "Prompt",
