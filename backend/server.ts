@@ -3,6 +3,7 @@ import {createClient} from '@supabase/supabase-js'
 import express from "express"
 import cors from "cors"
 import eventDetailRoutes from "./routes/event-rvsp-forum"
+import galaRoutes from "./routes/gala"
 
 const app = express();
 app.use(cors());
@@ -14,6 +15,7 @@ const PORT = Number(process.env.PORT) || 3000;
 app.listen(PORT, '0.0.0.0', () => console.log(`Server listening on ${PORT}`));
 
 app.use("/api/", eventDetailRoutes);
+app.use("/api/gala", galaRoutes);
 
 // Creating client on Supabase
 const url = process.env.SUPABASE_URL;
@@ -24,4 +26,3 @@ if (!url || !key){
 }
 
 export const supabase = createClient(url,key)
-

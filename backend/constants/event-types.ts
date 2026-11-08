@@ -1,0 +1,1 @@
+export const EVENT_TYPES = ["Event Type", "Name", "Prompt", "Budget", "Task"]

@@ -1,24 +1,10 @@
 import dotenv from "dotenv";
-
+import type { eventCreationSteps } from "../../interfaces/event-creation-steps";
+import { EVENT_TYPES } from "../constants/event-types";
+import { RESPONSE_TOOLS } from "../constants/response-tools";
+import { GALA_TASKS } from "../constants/gala-tasks";
 dotenv.config();
 
-type EventDetails = {
-  name: string;
-  description: string;
-  eventType: string;
-  startTime: string;
-  endTime: string;
-};
-
-type PlannedTask = {
-  task_name: string;
-  task_description: string;
-};
-
-type GalaResponse = {
-  english_response: string;
-  tasks: PlannedTask[];
-};
 
 type AgentConfig = {
   agent_name: string;
@@ -29,61 +15,25 @@ type AgentConfig = {
   tools_list_dictionary?: object[];
 };
 
+type ResponseTool = {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: {
+      type: "object";
+      properties: Record<string, unknown>;
+      required: string[];
+      additionalProperties: false;
+    };
+  };
+};
+
 type SwarmsResponse = Record<string, unknown>;
 
 const API_URL = "https://api.swarms.world/v1";
 const MODEL_NAME = "claude-haiku-4-5";
-const userPrompt =
-  "I want to make my celebration look super pretty. What should I do in order to do that?";
 
-const now = new Date();
-const eventDetails: EventDetails = {
-  name: "Grand 21st Celebration",
-  description: "Let's celebrate!",
-  eventType: "Celebration",
-  startTime: now.toISOString(),
-  endTime: new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString(),
-};
-
-const responseTool = {
-  type: "function",
-  function: {
-    name: "create_gala_response",
-    description:
-      "Return the final user-facing response and an array of actionable event tasks.",
-    parameters: {
-      type: "object",
-      properties: {
-        english_response: {
-          type: "string",
-          description: "A concise, friendly response to the user's request.",
-        },
-        tasks: {
-          type: "array",
-          description:
-            "All relevant actionable tasks; choose the number needed and do not pad the list.",
-          items: {
-            type: "object",
-            properties: {
-              task_name: {
-                type: "string",
-                description: "A concise title for the task.",
-              },
-              task_description: {
-                type: "string",
-                description: "Specific details for completing the task.",
-              },
-            },
-            required: ["task_name", "task_description"],
-            additionalProperties: false,
-          },
-        },
-      },
-      required: ["english_response", "tasks"],
-      additionalProperties: false,
-    },
-  },
-};
 
 const specialists: AgentConfig[] = [
   {
@@ -172,12 +122,13 @@ function outputToText(response: SwarmsResponse, agentName: string): string {
 
 function findFunctionCall(
   value: unknown,
+  functionName: string,
   depth = 0,
 ): { arguments: unknown } | undefined {
   if (depth > 8) return undefined;
   if (Array.isArray(value)) {
     for (const item of value) {
-      const call = findFunctionCall(item, depth + 1);
+      const call = findFunctionCall(item, functionName, depth + 1);
       if (call) return call;
     }
     return undefined;
@@ -187,54 +138,118 @@ function findFunctionCall(
   const fn = value.function;
   if (
     isRecord(fn) &&
-    fn.name === "create_gala_response" &&
+    fn.name === functionName &&
     "arguments" in fn
   ) {
     return { arguments: fn.arguments };
   }
 
   for (const child of Object.values(value)) {
-    const call = findFunctionCall(child, depth + 1);
+    const call = findFunctionCall(child, functionName, depth + 1);
     if (call) return call;
   }
   return undefined;
 }
 
-function parseGalaResponse(value: unknown): GalaResponse {
+function isEventCreationStep(value: unknown): value is eventCreationSteps {
+  return (
+    typeof value === "string" &&
+    (EVENT_TYPES as readonly string[]).includes(value)
+  );
+}
+
+function parseFunctionArguments(
+  value: unknown,
+  functionName: string,
+): Record<string, unknown> {
   let parsed = value;
   if (typeof parsed === "string") {
     try {
       parsed = JSON.parse(parsed) as unknown;
     } catch (error) {
-      throw new Error("Gala returned malformed function arguments.", {
+      throw new Error(`${functionName} returned malformed JSON arguments.`, {
         cause: error,
       });
     }
   }
-
-  if (!isRecord(parsed) || typeof parsed.english_response !== "string") {
-    throw new Error("Gala's response is missing english_response.");
+  if (!isRecord(parsed)) {
+    throw new Error(`${functionName} arguments must be a JSON object.`);
   }
-  if (!Array.isArray(parsed.tasks)) {
-    throw new Error("Gala's tasks field must be an array.");
+  if (
+    "english_response" in parsed &&
+    typeof parsed.english_response !== "string"
+  ) {
+    throw new Error(`${functionName}.english_response must be a string.`);
   }
-
-  const tasks = parsed.tasks.map((task, index): PlannedTask => {
-    if (
-      !isRecord(task) ||
-      typeof task.task_name !== "string" ||
-      typeof task.task_description !== "string"
-    ) {
-      throw new Error(`Gala returned an invalid task at index ${index}.`);
-    }
-    return {
-      task_name: task.task_name,
-      task_description: task.task_description,
-    };
-  });
-
-  return { english_response: parsed.english_response, tasks };
+  return parsed;
 }
+
+export async function determineContext(
+  userPrompt: string,
+): Promise<eventCreationSteps> {
+  const apiKey = process.env.SWARMS_API_KEY;
+  if (!apiKey) throw new Error("SWARMS_API_KEY is not set.");
+
+  const contextTool = {
+    type: "function",
+    function: {
+      name: "select_event_context",
+      description: "Choose the best matching event-planning context.",
+      parameters: {
+        type: "object",
+        properties: {
+          context: {
+            type: "string",
+            enum: EVENT_TYPES,
+            description: "The single context that best fits the user's prompt.",
+          },
+        },
+        required: ["context"],
+        additionalProperties: false,
+      },
+    },
+  };
+
+  const response = await postJson(
+    "/agent/completions",
+    {
+      agent_config: {
+        agent_name: "Gala Context Classifier",
+        description:
+          "Classifies a user prompt into one supported Gala context.",
+        system_prompt:
+          "Choose exactly one context that best describes what the user wants. You must call select_event_context. Do not select any value outside the provided enum.",
+        model_name: MODEL_NAME,
+        max_loops: 1,
+        tools_list_dictionary: [contextTool],
+      },
+      task: `Classify this user prompt into the single best matching context:\n\n${userPrompt}`,
+    },
+    apiKey,
+  );
+
+  if (response.success === false) {
+    throw new Error("Gala context classification was not successful.");
+  }
+  const functionCall = findFunctionCall(response.outputs, "select_event_context");
+  if (!functionCall) {
+    throw new Error(
+      `The context classifier did not call select_event_context. Output: ${JSON.stringify(response.outputs)}`,
+    );
+  }
+
+  const args = parseFunctionArguments(
+    functionCall.arguments,
+    "select_event_context",
+  );
+  if (!isEventCreationStep(args.context)) {
+    throw new Error(
+      `The context classifier returned an unsupported context: ${String(args.context)}`,
+    );
+  }
+  return args.context;
+}
+
 
 async function runAgent(
   agent: AgentConfig,
@@ -255,14 +270,44 @@ async function runAgent(
   return outputToText(response, agent.agent_name);
 }
 
-async function main(): Promise<void> {
+
+export async function consultGala(
+  requestedContext: eventCreationSteps,
+  userPrompt: string,
+  eventDetails: unknown,
+): Promise<Record<string, unknown>> {
   const apiKey = process.env.SWARMS_API_KEY;
   if (!apiKey) throw new Error("SWARMS_API_KEY is not set.");
+
+  const context =
+    requestedContext === "Prompt"
+      ? await determineContext(userPrompt)
+      : requestedContext;
+  const currentTask = GALA_TASKS[context];
+  const responseTool = JSON.parse(
+    JSON.stringify(RESPONSE_TOOLS[context]),
+  ) as ResponseTool;
+  if (
+    requestedContext === "Prompt" &&
+    !("english_response" in responseTool.function.parameters.properties)
+  ) {
+    responseTool.function.parameters.properties.english_response = {
+      type: "string",
+      description: "A concise, friendly response to the user's request.",
+    };
+    responseTool.function.parameters.required.push("english_response");
+  }
 
   const discussion: { agent_name: string; message: string }[] = [];
 
   for (const specialist of specialists) {
     const task = `Discuss this event-planning request with the specialists who have already contributed. Respond with your own relevant advice and explicitly build on at least one earlier point when there is one. Do not write the final answer.
+
+Current Gala task:
+${currentTask}
+
+Selected context:
+${context}
 
 Event details:
 ${JSON.stringify(eventDetails, null, 2)}
@@ -278,13 +323,13 @@ ${JSON.stringify(discussion, null, 2)}`;
     console.log(`\n--- ${specialist.agent_name} ---\n${message}\n`);
   }
 
-  if (discussion.length < 2) {
-    throw new Error(
-      "The final agent was not called because fewer than two specialists contributed.",
-    );
-  }
-
   const finalizerTask = `Write the final response for the user using the specialist discussion below.
+
+Current Gala task:
+${currentTask}
+
+Selected context:
+${context}
 
 Event details:
 ${JSON.stringify(eventDetails, null, 2)}
@@ -295,7 +340,7 @@ ${userPrompt}
 Specialist discussion:
 ${JSON.stringify(discussion, null, 2)}
 
-Call create_gala_response exactly once. Make the english_response helpful and concise. Return all relevant actionable tasks in the tasks array; choose the number that fits the request rather than forcing a fixed count.`;
+Call create_gala_response exactly once.`
 
   const finalizerResponse = await postJson(
     "/agent/completions",
@@ -318,18 +363,15 @@ Call create_gala_response exactly once. Make the english_response helpful and co
   if (finalizerResponse.success === false) {
     throw new Error("Gala's final completion was not successful.");
   }
-  const functionCall = findFunctionCall(finalizerResponse.outputs);
+  const functionCall = findFunctionCall(finalizerResponse.outputs, "create_gala_response");
   if (!functionCall) {
     throw new Error(
       `Gala did not call create_gala_response. Output: ${JSON.stringify(finalizerResponse.outputs)}`,
     );
   }
 
-  const galaResponse = parseGalaResponse(functionCall.arguments);
-  console.log(JSON.stringify(galaResponse, null, 2));
+  return parseFunctionArguments(
+    functionCall.arguments,
+    "create_gala_response",
+  );
 }
-
-main().catch((error: unknown) => {
-  console.error("Gala task generation failed:", error);
-  process.exitCode = 1;
-});
