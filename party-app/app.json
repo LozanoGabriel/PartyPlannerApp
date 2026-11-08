@@ -48,7 +48,7 @@
             "cmakeVersion": "4.1.2"
           },
           "ios": {
-          "useFrameworks": "dynamic"
+            "useFrameworks": "dynamic"
           }
         }
       ],
@@ -62,6 +62,7 @@
         "@react-native-firebase/app",
         {}
       ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -1,9 +1,10 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Href, router } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import { AccessibilityInfo, Animated, Easing, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { DashboardLayout } from "../components/dashboard-layout";
 import { useEventPreview } from "../components/event-preview-context";
+import { usePreviewProgress } from "../components/use-preview-progress";
 
 const gala = require("../../assets/images/gala_front_facing.png");
 
@@ -23,48 +24,7 @@ function PageLink({ label, href }: { label: string; href: Href }) {
 }
 
 function ProgressCards() {
-  const progress = useRef(new Animated.Value(0)).current;
-  const [fraction, setFraction] = useState(0);
-
-  useEffect(() => {
-    let active = true;
-    let motionChanged = false;
-    let started = false;
-    const listener = progress.addListener(({ value }) => setFraction(value));
-    const finish = () => {
-      progress.stopAnimation();
-      progress.setValue(1);
-    };
-    const start = () => {
-      if (started) return;
-      started = true;
-      Animated.timing(progress, { toValue: 1, duration: 1000, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
-    };
-    const subscription = AccessibilityInfo.addEventListener("reduceMotionChanged", (reduced) => {
-      motionChanged = true;
-      if (reduced) finish();
-      else start();
-    });
-
-    AccessibilityInfo.isReduceMotionEnabled().then((reduced) => {
-      if (!active || motionChanged) return;
-      if (reduced) {
-        finish();
-      } else {
-        start();
-      }
-    }).catch((error) => {
-      console.error("Unable to check reduced motion preference:", error);
-      if (active) finish();
-    });
-
-    return () => {
-      active = false;
-      subscription.remove();
-      progress.stopAnimation();
-      progress.removeListener(listener);
-    };
-  }, [progress]);
+  const { progress, fraction } = usePreviewProgress();
 
   const width = (percentage: number) => progress.interpolate({ inputRange: [0, 1], outputRange: ["0%", `${percentage}%`] });
 

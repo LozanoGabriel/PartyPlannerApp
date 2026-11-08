@@ -11,6 +11,7 @@
     "@expo/metro-runtime": "~5.0.5",
     "@expo/ui": "0.1.1-alpha.10",
     "@expo/vector-icons": "^14.1.0",
+    "@react-native-community/datetimepicker": "8.4.1",
     "@react-native-firebase/app": "^20.1.0",
     "@react-native-firebase/messaging": "^20.1.0",
     "@react-native/js-polyfills": "0.79.6",

@@ -29,9 +29,13 @@ You can start developing by editing the files inside the **src/app** directory. 
 
 The initial `/` route redirects to `/login`. Sign-in and sign-up open an unauthenticated dashboard preview after local validation; they do not verify credentials or create accounts. Password reset does not send emails, and Google sign-in is unavailable. Connect these flows to the authentication backend before using them for real accounts.
 
+Unmatched routes show a custom not-found page; its back button returns to the previous in-app screen, or to the initial route when there is no navigation history. This page does not provide authentication or authorization.
+
 The terms and privacy notice is draft placeholder text, not an actual policy or recorded consent. Replace it with approved terms describing the real data and AI practices before enabling registration.
 
 The dashboard, its event and milestone data, and the Events, Tasks, Gala, and Settings pages are previews only. The Events page shows a separate example event; edits to its name, duration, food and drink preferences, and selected image are kept only in memory until the app reloads. Images are not uploaded and their local URIs may expire. Edits do not update the dashboard, guest counts, tasks, budget, or any backend. The guest list is a placeholder. The sample countdowns are based on November 7, 2026. The dashboard's `showEmptyState` switch previews the no-events fallback; replace it with real event data when the backend is connected.
+
+Tasks are fixed examples; the summary figures and listed tasks are separate mockups. Search, assignment/status tabs, due-date filtering, and marking tasks complete work locally; completion resets when leaving the Tasks screen. Create Task is not connected, and edits are temporary to the edit screen. The Gala link opens the existing preview, not an AI conversation. The date picker is a native dependency; rebuild the development app after installing it.
 
 The proposed event update endpoint is `PATCH SERVERIP:3000/api/:eventId` with a `jwt` field in the request payload. It is not connected: the server address, authenticated token source, event ID, field schema, and image upload contract still need to be established. Rebuild the native development app after adding the image picker.
 

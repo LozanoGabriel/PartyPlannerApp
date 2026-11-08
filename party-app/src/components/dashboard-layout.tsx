@@ -17,11 +17,13 @@ const links: { label: NavPage; href: Href; icon: "home-outline" | "calendar-outl
   { label: "Gala", href: "/gala", icon: null },
 ];
 
-export function DashboardLayout({ children, active, showNavigation = true, compactContent = false }: {
+export function DashboardLayout({ children, active, showNavigation = true, compactContent = false, onNavigate, overlay }: {
   children: ReactNode;
   active?: NavPage;
   showNavigation?: boolean;
   compactContent?: boolean;
+  onNavigate?: (href: Href) => void;
+  overlay?: ReactNode;
 }) {
   const [loaded, error] = useFonts({
     DMSans_400Regular,
@@ -60,7 +62,8 @@ export function DashboardLayout({ children, active, showNavigation = true, compa
                 accessibilityLabel={label}
                 accessibilityState={{ selected: active === label }}
                 onPress={() => {
-                  if (active !== label) router.replace(href);
+                  if (onNavigate) onNavigate(href);
+                  else if (active !== label) router.replace(href);
                 }}
                 style={layout.navItem}
               >
@@ -71,6 +74,7 @@ export function DashboardLayout({ children, active, showNavigation = true, compa
               </Pressable>
             ))}
           </View>}
+          {overlay && <View pointerEvents="box-none" style={layout.overlay}>{overlay}</View>}
         </>
       )}
     </SafeAreaView>
@@ -108,6 +112,7 @@ const layout = StyleSheet.create({
   navLabel: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 12 },
   selected: { fontFamily: "DMSans_700Bold", textDecorationLine: "underline" },
   galaIcon: { width: 30, height: 30 },
+  overlay: { position: "absolute", bottom: 88, left: 16, right: 16, alignItems: "center" },
   placeholder: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16 },
   placeholderTitle: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 30 },
   placeholderText: { color: "#3d2423", fontFamily: "DMSans_400Regular", fontSize: 16, textAlign: "center" },

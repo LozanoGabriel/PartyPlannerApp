@@ -1,11 +1,10 @@
 import { router, useNavigation } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { useEffect, useRef, useState } from "react";
-import { Image, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { DashboardLayout } from "../components/dashboard-layout";
 import { EventPreview, useEventPreview } from "../components/event-preview-context";
-
-const thinkingGala = require("../../assets/images/gala_thinking.png");
+import { SaveChangesDialog } from "../components/save-changes-dialog";
 
 const fields: { key: Exclude<keyof EventPreview, "imageUri">; label: string; hint?: string }[] = [
   { key: "name", label: "Event Name" },
@@ -131,20 +130,7 @@ export default function EditEventScreen() {
           <Text style={styles.backText}>Back to My Event</Text>
         </Pressable>
       </View>
-      <Modal visible={dialog !== null} transparent animationType="fade" onRequestClose={keepEditing}>
-        <View style={styles.overlay}>
-          <View style={styles.dialog} accessibilityViewIsModal>
-            <View style={styles.dialogHeader}>
-              <Image source={thinkingGala} style={styles.dialogImage} resizeMode="contain" accessible={false} />
-              <Text style={styles.dialogTitle} accessibilityRole="header">Save changes?</Text>
-            </View>
-            <Text style={styles.dialogText}>Changes are kept only for this preview and will be lost when the app reloads.</Text>
-            <Pressable accessibilityRole="button" onPress={save} style={styles.dialogPrimary}><Text style={styles.dialogPrimaryText}>Save Changes</Text></Pressable>
-            {dialog === "leave" && <Pressable accessibilityRole="button" onPress={leave} style={styles.dialogAction}><Text style={styles.dialogActionText}>Discard Changes</Text></Pressable>}
-            <Pressable accessibilityRole="button" onPress={keepEditing} style={styles.dialogAction}><Text style={styles.dialogActionText}>Keep Editing</Text></Pressable>
-          </View>
-        </View>
-      </Modal>
+      <SaveChangesDialog visible={dialog !== null} onClose={keepEditing} onSave={save} onDiscard={dialog === "leave" ? leave : undefined} message="Changes are kept only for this preview and will be lost when the app reloads." />
     </DashboardLayout>
   );
 }
@@ -167,14 +153,4 @@ const styles = StyleSheet.create({
   buttonText: { color: "#a43f3a", fontFamily: "DMSans_700Bold", fontSize: 16 },
   back: { minHeight: 48, alignItems: "center", justifyContent: "center" },
   backText: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 15, textDecorationLine: "underline" },
-  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 24 },
-  dialog: { width: "100%", maxWidth: 400, backgroundColor: "#ffffff", borderRadius: 20, padding: 20, gap: 12 },
-  dialogHeader: { alignItems: "center", gap: 4 },
-  dialogImage: { width: 88, height: 72 },
-  dialogTitle: { color: "#1e1e1e", fontFamily: "DMSans_700Bold", fontSize: 20, textAlign: "center" },
-  dialogText: { color: "#3d2423", fontFamily: "DMSans_400Regular", fontSize: 14, lineHeight: 20 },
-  dialogPrimary: { backgroundColor: "#c65d58", minHeight: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
-  dialogPrimaryText: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 15 },
-  dialogAction: { minHeight: 44, alignItems: "center", justifyContent: "center" },
-  dialogActionText: { color: "#a43f3a", fontFamily: "DMSans_700Bold", fontSize: 15 },
 });
