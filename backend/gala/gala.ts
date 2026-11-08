@@ -108,16 +108,33 @@ async function postJson(
   return parsedBody;
 }
 
-function outputToText(response: SwarmsResponse, agentName: string): string {
-  const output = response.outputs;
-  if (typeof output === "string" && output.trim()) return output.trim();
-  if (Array.isArray(output) && output.length > 0) {
-    return JSON.stringify(output);
+async function runSequentialWorkflow(
+  name: string,
+  description: string,
+  task: string,
+  agents: AgentConfig[],
+  apiKey: string,
+): Promise<unknown> {
+  const response = await postJson(
+    "/swarm/completions",
+    {
+      name,
+      description,
+      swarm_type: "SequentialWorkflow",
+      task,
+      agents,
+      max_loops: 1,
+    },
+    apiKey,
+  );
+  const status = typeof response.status === "string" ? response.status.toLowerCase() : "";
+  if (["error", "failed", "failure", "cancelled"].includes(status)) {
+    throw new Error(`${name} workflow failed with status "${response.status}".`);
   }
-  if (isRecord(output) && Object.keys(output).length > 0) {
-    return JSON.stringify(output);
+  if (!("output" in response) || response.output === null || response.output === undefined) {
+    throw new Error(`${name} workflow returned no output.`);
   }
-  throw new Error(`${agentName} returned no output.`);
+  return response.output;
 }
 
 function findFunctionCall(
@@ -126,6 +143,14 @@ function findFunctionCall(
   depth = 0,
 ): { arguments: unknown } | undefined {
   if (depth > 8) return undefined;
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      return findFunctionCall(parsed, functionName, depth + 1);
+    } catch {
+      return undefined;
+    }
+  }
   if (Array.isArray(value)) {
     for (const item of value) {
       const call = findFunctionCall(item, functionName, depth + 1);
@@ -210,31 +235,26 @@ export async function determineContext(
     },
   };
 
-  const response = await postJson(
-    "/agent/completions",
-    {
-      agent_config: {
-        agent_name: "Gala Context Classifier",
-        description:
-          "Classifies a user prompt into one supported Gala context.",
-        system_prompt:
-          "Choose exactly one context that best describes what the user wants. You must call select_event_context. Do not select any value outside the provided enum.",
-        model_name: MODEL_NAME,
-        max_loops: 1,
-        tools_list_dictionary: [contextTool],
-      },
-      task: `Classify this user prompt into the single best matching context:\n\n${userPrompt}`,
-    },
+  const output = await runSequentialWorkflow(
+    "Gala Context Classifier",
+    "Classifies a user prompt into one supported Gala context.",
+    `Classify this user prompt into the single best matching context:\n\n${userPrompt}`,
+    [{
+      agent_name: "Gala Context Classifier",
+      description: "Classifies a user prompt into one supported Gala context.",
+      system_prompt:
+        "Choose exactly one context that best describes what the user wants. You must call select_event_context. Do not select any value outside the provided enum.",
+      model_name: MODEL_NAME,
+      max_loops: 1,
+      tools_list_dictionary: [contextTool],
+    }],
     apiKey,
   );
 
-  if (response.success === false) {
-    throw new Error("Gala context classification was not successful.");
-  }
-  const functionCall = findFunctionCall(response.outputs, "select_event_context");
+  const functionCall = findFunctionCall(output, "select_event_context");
   if (!functionCall) {
     throw new Error(
-      `The context classifier did not call select_event_context. Output: ${JSON.stringify(response.outputs)}`,
+      `The context classifier did not call select_event_context. Output: ${JSON.stringify(output)}`,
     );
   }
 
@@ -248,26 +268,6 @@ export async function determineContext(
     );
   }
   return args.context;
-}
-
-
-async function runAgent(
-  agent: AgentConfig,
-  task: string,
-  apiKey: string,
-): Promise<string> {
-  const response = await postJson(
-    "/agent/completions",
-    {
-      agent_config: agent,
-      task,
-    },
-    apiKey,
-  );
-  if (response.success === false) {
-    throw new Error(`${agent.agent_name} completion was not successful.`);
-  }
-  return outputToText(response, agent.agent_name);
 }
 
 
@@ -301,10 +301,7 @@ export async function consultGala(
     responseTool.function.parameters.required.push("english_response");
   }
 
-  const discussion: { agent_name: string; message: string }[] = [];
-
-  for (const specialist of specialists) {
-    const task = `Briefly discuss this event-planning request with the specialists who have already contributed. Add only one or two directly useful points, build on earlier ideas when relevant, and do not write the final answer.
+  const workflowTask = `Run Gala's event-planning specialists in sequence. Each specialist should contribute one or two directly useful points, build on earlier specialists' recommendations, and preserve the useful context for the next specialist. The final agent, Gala Final Response, must synthesize the discussion and call create_gala_response exactly once.
 
 Current Gala task:
 ${currentTask}
@@ -321,40 +318,15 @@ ${userRequest}
 Previous conversation with the user:
 ${JSON.stringify(conversationHistory, null, 2)}
 
-Earlier specialists' messages:
-${JSON.stringify(discussion, null, 2)}`;
+Final response requirements: Keep english_response to at most two short sentences and 45 words. Do not repeat structured suggestions in prose; avoid preambles and extra explanation. Limit suggestion arrays to at most three brief, relevant items.`
 
-    const message = await runAgent(specialist, task, apiKey);
-    discussion.push({ agent_name: specialist.agent_name, message });
-    console.log(`\n--- ${specialist.agent_name} ---\n${message}\n`);
-  }
-
-  const finalizerTask = `Write a concise final response for the user using the specialist discussion below. Keep the english_response to at most two short sentences and 45 words. Do not repeat the structured suggestions in prose; avoid preambles and extra explanation. Limit suggestion arrays to at most three brief, relevant items.
-
-Current Gala task:
-${currentTask}
-
-Selected context:
-${context}
-
-Event details:
-${JSON.stringify(eventDetails, null, 2)}
-
-User's request:
-${userRequest}
-
-Previous conversation with the user:
-${JSON.stringify(conversationHistory, null, 2)}
-
-Specialist discussion:
-${JSON.stringify(discussion, null, 2)}
-
-Call create_gala_response exactly once.`
-
-  const finalizerResponse = await postJson(
-    "/agent/completions",
-    {
-      agent_config: {
+  const output = await runSequentialWorkflow(
+    "Gala Sequential Planning",
+    "Runs Gala's event-planning specialists in sequence, then returns one structured response.",
+    workflowTask,
+    [
+      ...specialists,
+      {
         agent_name: "Gala Final Response",
         description:
           "Synthesizes specialist discussion into the final structured response.",
@@ -363,19 +335,15 @@ Call create_gala_response exactly once.`
         model_name: MODEL_NAME,
         max_loops: 1,
         tools_list_dictionary: [responseTool],
-      } satisfies AgentConfig,
-      task: finalizerTask,
-    },
+      },
+    ],
     apiKey,
   );
 
-  if (finalizerResponse.success === false) {
-    throw new Error("Gala's final completion was not successful.");
-  }
-  const functionCall = findFunctionCall(finalizerResponse.outputs, "create_gala_response");
+  const functionCall = findFunctionCall(output, "create_gala_response");
   if (!functionCall) {
     throw new Error(
-      `Gala did not call create_gala_response. Output: ${JSON.stringify(finalizerResponse.outputs)}`,
+      `Gala did not call create_gala_response. Output: ${JSON.stringify(output)}`,
     );
   }
 
