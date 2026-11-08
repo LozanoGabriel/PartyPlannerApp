@@ -1,9 +1,9 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { DashboardLayout } from "../components/dashboard-layout";
+import { GatherBrand } from "../components/gather-brand";
 
-const gala = require("../../assets/images/gala_front_facing.png");
 // Replace this preview switch with the real event list when the backend is connected.
 const showEmptyState = false;
 const milestones = [
@@ -17,9 +17,7 @@ export default function DashboardScreen() {
     <DashboardLayout active="Home" compactContent>
       <View style={styles.dashboard}>
       <View style={styles.header}>
-        <View style={styles.galaFrame}>
-          <Image source={gala} style={styles.gala} resizeMode="contain" accessible={false} />
-        </View>
+        <GatherBrand />
         <Pressable accessibilityRole="link" accessibilityLabel="Settings" onPress={() => router.push("/settings")} style={styles.settings}>
           <Ionicons name="settings-outline" size={28} color="#ffffff" />
         </Pressable>
@@ -72,8 +70,6 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   dashboard: { flex: 1, justifyContent: "space-evenly" },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  galaFrame: { width: 48, height: 48, overflow: "hidden", alignItems: "center", justifyContent: "center" },
-  gala: { width: 80, height: 80 },
   welcome: { color: "#ffffff", fontFamily: "NanumPenScript_400Regular", fontSize: 43, lineHeight: 52, textAlign: "center" },
   settings: { width: 48, height: 48, alignItems: "center", justifyContent: "center" },
   heading: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 22, textAlign: "center", marginTop: 2 },

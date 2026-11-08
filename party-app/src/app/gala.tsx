@@ -2,8 +2,9 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import * as DocumentPicker from "expo-document-picker";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useRef, useState } from "react";
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
+import { Image, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from "react-native";
 import { DashboardLayout } from "../components/dashboard-layout";
+import { GatherBrand } from "../components/gather-brand";
 import { speechRecognition } from "../components/speech-recognition";
 
 const gala = require("../../assets/images/gala_front_facing.png");
@@ -24,6 +25,7 @@ export default function GalaScreen() {
   const [attachment, setAttachment] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
   const [error, setError] = useState("");
+  const [permissionHelp, setPermissionHelp] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [dictation, setDictation] = useState<"idle" | "starting" | "listening" | "stopping">("idle");
   const dictationActive = useRef(false);
@@ -49,8 +51,11 @@ export default function GalaScreen() {
       recognizer.addListener("error", (event) => {
         if (!dictationActive.current) return;
         console.error("Speech recognition error:", event.error, event.message);
-        setError(event.error === "not-allowed"
-          ? "Microphone or speech recognition permission was denied. Check your device or browser settings."
+        const denied = event.error === "not-allowed" || event.error === "service-not-allowed";
+        setPermissionHelp(denied);
+        if (denied) scrollToReply.current = true;
+        setError(denied
+          ? "Microphone or speech recognition access was denied."
           : event.error === "no-speech" || event.error === "speech-timeout"
             ? "No speech was detected. Please try again."
             : "Speech recognition could not complete. Check your connection and try again.");
@@ -80,6 +85,7 @@ export default function GalaScreen() {
     }
     if (dictation !== "idle") return;
     setError("");
+    setPermissionHelp(false);
     if (!speechRecognition || !speechRecognition.isRecognitionAvailable()) {
       setError("Speech recognition is unavailable. Use a supported browser or rebuild the native app.");
       return;
@@ -91,7 +97,9 @@ export default function GalaScreen() {
         const permission = await speechRecognition.requestPermissionsAsync();
         if (currentRequest !== requestId.current) return;
         if (!permission.granted) {
-          setError("Microphone or speech recognition permission was denied. Check your device settings.");
+          scrollToReply.current = true;
+          setPermissionHelp(true);
+          setError("Microphone or speech recognition access was denied.");
           setDictation("idle");
           return;
         }
@@ -104,6 +112,15 @@ export default function GalaScreen() {
       dictationActive.current = false;
       setDictation("idle");
       setError("Unable to start speech recognition. Please try again.");
+    }
+  }
+
+  async function openPermissionSettings() {
+    try {
+      await Linking.openSettings();
+    } catch (reason) {
+      console.error("Unable to open app settings:", reason);
+      setError("Unable to open app settings. Open your device settings and find this app's permissions.");
     }
   }
 
@@ -120,6 +137,7 @@ export default function GalaScreen() {
     setDraft("");
     setAttachment(null);
     setError("");
+    setPermissionHelp(false);
   }
 
   function chooseSuggestion(title: string, reply: string) {
@@ -132,6 +150,7 @@ export default function GalaScreen() {
     if (picking) return;
     setPicking(true);
     setError("");
+    setPermissionHelp(false);
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ["image/*", "application/pdf"],
@@ -162,7 +181,7 @@ export default function GalaScreen() {
         pageRef.current?.scrollToEnd({ animated: true });
       }
     }}>
-      <View style={[styles.brandFrame, narrow && styles.narrowBrand]}><Image source={gala} style={styles.brand} resizeMode="contain" accessible={false} /></View>
+      <View style={[styles.brandSpacing, narrow && styles.narrowBrandSpacing]}><GatherBrand compact={narrow} /></View>
       <View style={[styles.container, narrow && styles.narrowContainer]}>
         <Text style={styles.title} accessibilityRole="header">Chat with Gala</Text>
         <View style={[styles.heroFrame, narrow && styles.narrowHeroFrame]}>
@@ -208,6 +227,14 @@ export default function GalaScreen() {
         </View>
         {dictation !== "idle" && <Text style={styles.preview} accessibilityLiveRegion="polite">{dictation === "listening" ? "Listening... Tap the microphone to finish." : dictation === "starting" ? "Starting dictation..." : "Finishing dictation..."}</Text>}
         {!!error && <Text style={styles.error} accessibilityRole="alert">{error}</Text>}
+        {permissionHelp && <View style={styles.permissionHelp}>
+          <Text style={styles.permissionText}>{Platform.OS === "web"
+            ? "Use the site controls beside the browser address bar to allow microphone access. Also check your browser and device microphone settings, then reload and try again. Speech recognition support varies by browser."
+            : Platform.OS === "ios"
+              ? "Open app settings and allow Microphone and Speech Recognition. Return here and tap the microphone again."
+              : "Open app settings, then Permissions, and allow Microphone. Return here and tap the microphone again."}</Text>
+          {Platform.OS !== "web" && <Pressable accessibilityRole="button" onPress={() => { void openPermissionSettings(); }} style={styles.settingsButton}><Text style={styles.settingsButtonText}>Open app settings</Text></Pressable>}
+        </View>}
         <Text style={styles.preview}>Sample replies. Files stay local. Speech may be sent to a provider.</Text>
       </View>
     </DashboardLayout>
@@ -215,9 +242,8 @@ export default function GalaScreen() {
 }
 
 const styles = StyleSheet.create({
-  brandFrame: { width: 40, height: 40, overflow: "hidden", alignItems: "center", justifyContent: "center", marginBottom: 4 },
-  brand: { width: 70, height: 70 },
-  narrowBrand: { height: 32, marginBottom: 2 },
+  brandSpacing: { marginBottom: 4 },
+  narrowBrandSpacing: { marginBottom: 2 },
   container: { backgroundColor: "#c65d58", borderRadius: 28, padding: 14, gap: 6 },
   narrowContainer: { padding: 10, gap: 4 },
   title: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 23, textAlign: "center" },
@@ -257,4 +283,8 @@ const styles = StyleSheet.create({
   attachmentRow: { flexDirection: "row", alignItems: "center", paddingLeft: 8 },
   attachmentName: { flex: 1, color: "#3d2423", fontFamily: "DMSans_400Regular", fontSize: 13 },
   error: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 13 },
+  permissionHelp: { gap: 8, paddingVertical: 4 },
+  permissionText: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 13, lineHeight: 18 },
+  settingsButton: { backgroundColor: "#ffffff", borderRadius: 16, minHeight: 44, alignItems: "center", justifyContent: "center", paddingHorizontal: 12, alignSelf: "flex-start" },
+  settingsButtonText: { color: "#a43f3a", fontFamily: "DMSans_700Bold", fontSize: 14 },
 });

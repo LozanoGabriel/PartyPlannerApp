@@ -29,8 +29,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow gather to select an image for your event.",
-          "microphonePermission": false
+          "photosPermission": "Allow gather to select an image for your event."
         }
       ],
       [
@@ -69,6 +68,7 @@
           "speechRecognitionPermission": "Allow gather to transcribe your speech into messages to Gala."
         }
       ],
+      "./plugins/with-speech-microphone",
       "@react-native-community/datetimepicker"
     ],
     "experiments": {

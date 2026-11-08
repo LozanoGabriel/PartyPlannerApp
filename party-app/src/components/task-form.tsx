@@ -1,13 +1,13 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Href, router, useNavigation } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { DashboardLayout } from "./dashboard-layout";
+import { GatherBrand } from "./gather-brand";
 import { SaveChangesDialog } from "./save-changes-dialog";
 import { TaskDatePicker } from "./task-date-picker";
 import { taskExamples } from "./task-examples";
 
-const gala = require("../../assets/images/gala_front_facing.png");
 const guests = ["Me", "Claribel Hernandez", "Cristian Mantilla", "Gabriel Lozano"];
 type Draft = { event: string; title: string; date: Date | null; assignee: string; notes: string };
 const emptyDraft: Draft = { event: "", title: "", date: null, assignee: "Me", notes: "" };
@@ -93,7 +93,7 @@ export function TaskForm({ mode, initialTask }: { mode: "create" | "edit"; initi
 
   return (
     <DashboardLayout active="Tasks" onNavigate={navigate} overlay={overlay}>
-      <View style={styles.galaFrame}><Image source={gala} style={styles.gala} resizeMode="contain" accessible={false} /></View>
+      <GatherBrand />
       <View style={styles.card}>
         <Text style={styles.title} accessibilityRole="header">{mode === "create" ? "Create a task" : "Edit Tasks"}</Text>
         <Text style={styles.notice}>Preview only. Tasks are not saved to a server.</Text>
@@ -131,8 +131,6 @@ export function TaskForm({ mode, initialTask }: { mode: "create" | "edit"; initi
 }
 
 const styles = StyleSheet.create({
-  galaFrame: { width: 48, height: 48, overflow: "hidden", alignItems: "center", justifyContent: "center" },
-  gala: { width: 80, height: 80 },
   card: { backgroundColor: "#c65d58", borderRadius: 32, padding: 20, gap: 12 },
   title: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 26, textAlign: "center" },
   notice: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 13, textAlign: "center" },

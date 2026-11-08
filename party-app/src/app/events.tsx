@@ -3,6 +3,7 @@ import { Href, router } from "expo-router";
 import { useState } from "react";
 import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
 import { DashboardLayout } from "../components/dashboard-layout";
+import { GatherBrand } from "../components/gather-brand";
 import { useEventPreview } from "../components/event-preview-context";
 import { usePreviewProgress } from "../components/use-preview-progress";
 
@@ -59,7 +60,7 @@ export default function EventsScreen() {
   const { event } = useEventPreview();
   return (
     <DashboardLayout active="Events">
-      <View style={styles.brandFrame}><Image source={gala} style={styles.brand} resizeMode="contain" accessible={false} /></View>
+      <GatherBrand />
       <View style={styles.overview}>
         <Text style={styles.title} accessibilityRole="header">My Event</Text>
         <Text style={styles.whiteDetail}>Saturday, December 5 • 5:00 PM</Text>
@@ -104,8 +105,6 @@ export default function EventsScreen() {
 
 const styles = StyleSheet.create({
   overview: { backgroundColor: "#c65d58", borderRadius: 32, padding: 18, gap: 8 },
-  brandFrame: { width: 48, height: 48, overflow: "hidden", alignItems: "center", justifyContent: "center" },
-  brand: { width: 80, height: 80 },
   title: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 26, textAlign: "center" },
   eventImage: { width: "100%", height: 150, borderRadius: 16 },
   whiteDetail: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 14 },
