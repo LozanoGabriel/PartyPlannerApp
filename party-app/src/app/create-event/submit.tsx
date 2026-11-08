@@ -62,7 +62,7 @@ export default function EventSubmission() {
     }
     const headcount = Number(guestCount);
     if (Number.isSafeInteger(headcount) && headcount > 0) eventDetails.expectedHeadcount = headcount;
-    if (budgetChoice === "manual" && budgetAmount) eventDetails.totalBudget = Number(budgetAmount);
+    if ((budgetChoice === "manual" || budgetChoice === "generate") && budgetAmount) eventDetails.totalBudget = Number(budgetAmount);
 
     setIsSubmitting(true);
     try {

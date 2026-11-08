@@ -16,11 +16,16 @@ export type EventTask = {
   created_at: string;
 };
 
+export type EventTaskList = {
+  tasks: EventTask[];
+  dueDateAvailable: boolean;
+};
+
 export type TaskInput = {
   title: string;
+  pillar: TaskPillar;
   dueDate?: string | null;
   status?: TaskStatus;
-  pillar?: TaskPillar;
   assignedGuestId?: string | null;
 };
 
@@ -54,12 +59,20 @@ async function request(path: string, init: RequestInit = {}): Promise<unknown> {
   return result;
 }
 
-export async function getTasks(eventId: string): Promise<EventTask[]> {
+export async function getTasks(eventId: string): Promise<EventTaskList> {
   const result = await request(`/api/tasks/${encodeURIComponent(eventId)}`);
-  if (typeof result !== "object" || result === null || !("tasks" in result) || !Array.isArray(result.tasks)) {
+  if (typeof result !== "object" || result === null || !("tasks" in result) ||
+      !Array.isArray(result.tasks) ||
+      ("dueDateAvailable" in result && typeof result.dueDateAvailable !== "boolean")) {
     throw new Error("The backend did not return a task list.");
   }
-  return result.tasks as EventTask[];
+  const dueDateAvailable = "dueDateAvailable" in result && typeof result.dueDateAvailable === "boolean"
+    ? result.dueDateAvailable
+    : true;
+  return {
+    tasks: result.tasks as EventTask[],
+    dueDateAvailable,
+  };
 }
 
 export async function createTask(eventId: string, taskData: TaskInput): Promise<EventTask> {

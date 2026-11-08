@@ -34,6 +34,7 @@ function summarizeResponse(response: GalaResponse) {
       ? `Setting suggestions: ${response.settings_suggestions.join("; ")}`
       : undefined,
     response.guest_tips?.length ? `Guest tips: ${response.guest_tips.join("; ")}` : undefined,
+    response.estimated_budget ? `Estimated total budget: $${response.estimated_budget}` : undefined,
     response.budget_items?.length
       ? `Budget suggestions: ${response.budget_items.map((item) => `${item.item_name}: ${item.item_description}`).join("; ")}`
       : undefined,
@@ -49,12 +50,14 @@ export function GalaAssistant({
   hint,
   onSelectName,
   onSelectEventType,
+  onEstimateBudget,
 }: {
   context: GalaContext;
   eventDetails: Record<string, unknown>;
   hint: string;
   onSelectName?: (name: string) => void;
   onSelectEventType?: (eventType: EventType) => void;
+  onEstimateBudget?: (amount: number) => void;
 }) {
   const { darkMode, aiSuggestions } = useAppPreferences();
   const { galaConversationId } = useEventSettings();
@@ -77,6 +80,7 @@ export function GalaAssistant({
       const history = await readGalaConversation(galaConversationId);
       const answer = await askGala(context, eventDetails, request || undefined, history);
       setResponse(answer);
+      if (answer.estimated_budget !== undefined) onEstimateBudget?.(answer.estimated_budget);
       try {
         await appendGalaConversation(galaConversationId, {
           context,
@@ -112,6 +116,11 @@ export function GalaAssistant({
       {response?.english_response && (
         <Text style={[styles.answer, darkMode && styles.darkText]} accessibilityLiveRegion="polite">
           {formatResponse(response.english_response)}
+        </Text>
+      )}
+      {response?.estimated_budget !== undefined && (
+        <Text style={[styles.listItem, darkMode && styles.darkText]} accessibilityLiveRegion="polite">
+          Estimated total budget: ${response.estimated_budget.toLocaleString()}
         </Text>
       )}
       {response?.event_type && onSelectEventType && (

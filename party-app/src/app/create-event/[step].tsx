@@ -101,7 +101,7 @@ export default function CreateEventStep() {
     ...(step >= 4 && hasValidHeadcount
       ? { expectedHeadcount }
       : {}),
-    ...(step >= 5 && budgetChoice === "manual" && hasValidManualBudget
+    ...(step >= 5 && (budgetChoice === "manual" || budgetChoice === "generate") && hasValidManualBudget
       ? { totalBudget }
       : {}),
   };

@@ -127,7 +127,6 @@ export default function LoginScreen() {
         <Pressable style={[styles.button, styles.signUpButton, darkMode && darkStyles.button]} accessibilityRole="button" onPress={() => router.push("/sign-up")}>
           <Text style={styles.buttonText}>Sign Up</Text>
         </Pressable>
-        <Text style={[styles.notice, darkMode && darkStyles.text]}>Credentials are not verified and Google sign in is unavailable.</Text>
       </View>
     </AuthPage>
   );

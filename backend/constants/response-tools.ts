@@ -38,6 +38,7 @@ const budgetItemSchema = {
 function responseTool(
   description: string,
   properties: Record<string, unknown> = {},
+  requiredProperties: string[] = [],
 ): ResponseTool {
   return {
     type: "function",
@@ -54,7 +55,7 @@ function responseTool(
           },
           ...properties,
         },
-        required: ["english_response"],
+        required: ["english_response", ...requiredProperties],
         additionalProperties: false,
       },
     },
@@ -106,8 +107,14 @@ export const RESPONSE_TOOLS: Record<eventCreationSteps, ResponseTool> = {
     },
   ),
   Budget: responseTool(
-    "Suggest relevant event budget categories without inventing prices or implying they were saved.",
+    "Estimate a reasonable total event budget in US dollars using the event details, especially expected headcount and event type. Also suggest relevant budget categories. The estimate is guidance, not a saved expense.",
     {
+      estimated_budget: {
+        type: "number",
+        minimum: 1,
+        maximum: 999999999,
+        description: "A single positive whole-number estimate of the total event budget in US dollars.",
+      },
       budget_items: {
         type: "array",
         maxItems: 3,
@@ -115,6 +122,7 @@ export const RESPONSE_TOOLS: Record<eventCreationSteps, ResponseTool> = {
         items: budgetItemSchema,
       },
     },
+    ["estimated_budget"],
   ),
   Prompt: responseTool("Answer the user's event-planning request."),
   Task: responseTool(

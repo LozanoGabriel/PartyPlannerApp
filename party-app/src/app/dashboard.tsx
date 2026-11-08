@@ -68,12 +68,14 @@ export default function DashboardScreen() {
   const [guests, setGuests] = useState<EventGuest[]>([]);
   const [loading, setLoading] = useState(true);
   const [detailsLoaded, setDetailsLoaded] = useState(false);
+  const [taskDueDatesAvailable, setTaskDueDatesAvailable] = useState(true);
   const [error, setError] = useState("");
 
   useFocusEffect(useCallback(() => {
     let active = true;
     setLoading(true);
     setDetailsLoaded(false);
+    setTaskDueDatesAvailable(true);
     setError("");
 
     void (async () => {
@@ -93,13 +95,14 @@ export default function DashboardScreen() {
         setGuests([]);
 
         if (nextEvent) {
-          const [nextTasks, nextGuests] = await Promise.all([
+          const [taskList, nextGuests] = await Promise.all([
             getTasks(nextEvent.id),
             getGuests(nextEvent.id),
           ]);
           if (!active) return;
-          setTasks(nextTasks);
+          setTasks(taskList.tasks);
           setGuests(nextGuests);
+          setTaskDueDatesAvailable(taskList.dueDateAvailable);
           setDetailsLoaded(true);
         }
       } catch (reason) {
@@ -114,7 +117,9 @@ export default function DashboardScreen() {
 
   const attending = guests.filter((guest) => guest.rsvp_status === "attending").length;
   const expected = event?.expected_headcount ?? guests.length;
-  const milestones = event && detailsLoaded ? getMilestones(event, tasks) : [];
+  const milestones = event && detailsLoaded && taskDueDatesAvailable
+    ? getMilestones(event, tasks)
+    : [];
   const progress = expected > 0 ? Math.min(attending / expected * 100, 100) : 0;
 
   return (
@@ -166,7 +171,8 @@ export default function DashboardScreen() {
 
             <Text style={styles.sectionTitle}>Upcoming milestones</Text>
             {!detailsLoaded && !error && <Text style={styles.detail}>Loading event milestones...</Text>}
-            {detailsLoaded && milestones.length === 0 && <Text style={styles.detail}>No upcoming milestones.</Text>}
+            {detailsLoaded && !taskDueDatesAvailable && <Text style={styles.detail}>None</Text>}
+            {detailsLoaded && taskDueDatesAvailable && milestones.length === 0 && <Text style={styles.detail}>None</Text>}
             {milestones.map((milestone, index) => (
               <View key={`${milestone.title}-${milestone.date.toISOString()}-${index}`} style={styles.milestone}>
                 <View style={styles.milestoneText}>

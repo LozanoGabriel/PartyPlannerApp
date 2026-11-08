@@ -10,15 +10,16 @@ import { EventRecord, getEvents } from "../lib/events-api";
 import { EventTask, getTasks, updateTask } from "../lib/tasks-api";
 import { EventGuest, getGuests } from "../lib/guests-api";
 
-type TaskGroup = "Today" | "Upcoming" | "Overdue" | "Completed";
+type TaskGroup = "Today" | "Upcoming" | "Overdue" | "Completed" | "To do";
 type TaskFilter = "All" | "Assigned" | "Completed";
 type DueFilter = "Any" | "Today" | "Upcoming" | "Overdue";
 const groups: TaskGroup[] = ["Today", "Upcoming", "Overdue", "Completed"];
 const filters: TaskFilter[] = ["All", "Assigned", "Completed"];
 const dueFilters: DueFilter[] = ["Any", "Today", "Upcoming", "Overdue"];
 
-function getTaskGroup(task: EventTask): TaskGroup {
+function getTaskGroup(task: EventTask, dueDateAvailable = true): TaskGroup {
   if (task.status === "complete") return "Completed";
+  if (!dueDateAvailable) return "To do";
   if (!task.due_date) return "Upcoming";
   const due = new Date(`${task.due_date}T00:00:00`);
   const today = new Date();
@@ -44,6 +45,7 @@ export default function TasksScreen() {
   const [guests, setGuests] = useState<EventGuest[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [dueDateAvailable, setDueDateAvailable] = useState(true);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<TaskFilter>("All");
   const [dueFilter, setDueFilter] = useState<DueFilter>("Any");
@@ -69,12 +71,15 @@ export default function TasksScreen() {
     if (!selectedId) {
       setTasks([]);
       setGuests([]);
+      setDueDateAvailable(true);
       return () => { active = false; };
     }
     setLoading(true);
-    Promise.all([getTasks(selectedId), getGuests(selectedId)]).then(([nextTasks, nextGuests]) => {
+    setDueDateAvailable(true);
+    Promise.all([getTasks(selectedId), getGuests(selectedId)]).then(([taskList, nextGuests]) => {
       if (!active) return;
-      setTasks(nextTasks);
+      setTasks(taskList.tasks);
+      setDueDateAvailable(taskList.dueDateAvailable);
       setGuests(nextGuests);
       setError("");
     }).catch((reason: unknown) => {
@@ -89,11 +94,12 @@ export default function TasksScreen() {
   const search = query.trim().toLowerCase();
   const visibleTasks = tasks.filter((task) => {
     const assignee = task.assigned_guest_id ? guestNames.get(task.assigned_guest_id) ?? "Guest" : "Me";
-    const matchesSearch = `${task.title} ${assignee} ${taskDueLabel(task)}`.toLowerCase().includes(search);
-    const taskGroup = getTaskGroup(task);
+    const matchesSearch = `${task.title} ${assignee} ${dueDateAvailable ? taskDueLabel(task) : ""}`.toLowerCase().includes(search);
+    const taskGroup = getTaskGroup(task, dueDateAvailable);
     const matchesFilter = filter === "All" || (filter === "Assigned" && task.assigned_guest_id !== null) || (filter === "Completed" && task.status === "complete");
-    return matchesSearch && matchesFilter && (dueFilter === "Any" || taskGroup === dueFilter);
+    return matchesSearch && matchesFilter && (!dueDateAvailable || dueFilter === "Any" || taskGroup === dueFilter);
   });
+  const visibleGroups: TaskGroup[] = dueDateAvailable ? groups : ["To do", "Completed"];
 
   async function completeTask(task: EventTask) {
     try {
@@ -133,11 +139,11 @@ export default function TasksScreen() {
           <View style={[styles.searchRow, darkMode && styles.darkPanel]}>
             <Ionicons name="search" size={20} color={darkMode ? darkPalette.text : "#594441"} />
             <TextInput accessibilityLabel="Search tasks" value={query} onChangeText={setQuery} placeholder="Search tasks..." placeholderTextColor={darkMode ? darkPalette.placeholder : "#6d615e"} style={[styles.searchInput, darkMode && styles.darkText]} returnKeyType="search" />
-            <Pressable accessibilityRole="button" accessibilityLabel="Filter by due date" accessibilityState={{ expanded: showDueFilters }} onPress={() => setShowDueFilters(!showDueFilters)} style={styles.filterIcon}>
+            {dueDateAvailable && <Pressable accessibilityRole="button" accessibilityLabel="Filter by due date" accessibilityState={{ expanded: showDueFilters }} onPress={() => setShowDueFilters(!showDueFilters)} style={styles.filterIcon}>
               <Ionicons name="options-outline" size={23} color={darkMode ? darkPalette.accent : "#a43f3a"} />
-            </Pressable>
+            </Pressable>}
           </View>
-          {showDueFilters && <View style={styles.dueFilters}>{dueFilters.map((option) => (
+          {dueDateAvailable && showDueFilters && <View style={styles.dueFilters}>{dueFilters.map((option) => (
             <Pressable key={option} accessibilityRole="radio" accessibilityState={{ checked: dueFilter === option }} onPress={() => setDueFilter(option)} style={[styles.dueFilter, dueFilter === option && styles.dueFilterSelected]}>
               <Text style={[styles.dueFilterText, dueFilter === option && styles.dueFilterTextSelected]}>{option}</Text>
             </Pressable>
@@ -147,8 +153,8 @@ export default function TasksScreen() {
               <Text style={[styles.tabText, filter === option && styles.selectedTabText]}>{option}</Text>
             </Pressable>
           ))}</View>
-          {visibleTasks.length === 0 ? <Text style={styles.empty}>{loading ? "" : "No tasks match your search and filters."}</Text> : groups.map((group) => {
-            const groupTasks = visibleTasks.filter((task) => getTaskGroup(task) === group);
+          {visibleTasks.length === 0 ? <Text style={styles.empty}>{loading ? "" : "No tasks match your search and filters."}</Text> : visibleGroups.map((group) => {
+            const groupTasks = visibleTasks.filter((task) => getTaskGroup(task, dueDateAvailable) === group);
             if (!groupTasks.length) return null;
             const expanded = expandedGroups.includes(group);
             return <View key={group} style={styles.section}>
@@ -164,7 +170,7 @@ export default function TasksScreen() {
                       <Ionicons name="ellipsis-horizontal" size={22} color={darkMode ? darkPalette.text : "#3d2423"} />
                     </Pressable>
                   </View>
-                  <View style={styles.taskRow}><Text style={[styles.assignee, darkMode && styles.darkText]}>Assigned to {assignee}</Text><Text style={[styles.due, darkMode && styles.darkAccent]}>{taskDueLabel(task)}</Text></View>
+                  <View style={styles.taskRow}><Text style={[styles.assignee, darkMode && styles.darkText]}>Assigned to {assignee}</Text>{dueDateAvailable && <Text style={[styles.due, darkMode && styles.darkAccent]}>{taskDueLabel(task)}</Text>}</View>
                   {openTask === task.id && <View style={styles.taskMenu}>
                     <Pressable accessibilityRole="link" onPress={() => router.push({ pathname: "/edit-tasks", params: { task: task.id, eventId: selectedId } })} style={styles.menuItem}><Text style={[styles.linkText, darkMode && styles.darkAccent]}>Edit task</Text></Pressable>
                     {task.status !== "complete" && <Pressable accessibilityRole="button" onPress={() => { void completeTask(task); }} style={styles.menuItem}><Text style={[styles.linkText, darkMode && styles.darkAccent]}>Mark as completed</Text></Pressable>}

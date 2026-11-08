@@ -12,6 +12,7 @@ export type GalaResponse = {
   names?: string[];
   settings_suggestions?: string[];
   guest_tips?: string[];
+  estimated_budget?: number;
   budget_items?: { item_name: string; item_description: string }[];
   tasks?: { task_name: string; task_description: string }[];
 };
@@ -46,6 +47,8 @@ function isGalaResponse(value: unknown): value is GalaResponse {
     (value.names === undefined || isStringArray(value.names)) &&
     (value.settings_suggestions === undefined || isStringArray(value.settings_suggestions)) &&
     (value.guest_tips === undefined || isStringArray(value.guest_tips)) &&
+    (value.estimated_budget === undefined ||
+      (typeof value.estimated_budget === "number" && Number.isSafeInteger(value.estimated_budget) && value.estimated_budget > 0 && value.estimated_budget <= 999999999)) &&
     (value.budget_items === undefined || isNamedDescriptionArray(value.budget_items, "item_name", "item_description")) &&
     (value.tasks === undefined || isNamedDescriptionArray(value.tasks, "task_name", "task_description"))
   );
@@ -90,6 +93,9 @@ export async function askGala(
   }
   if (!isGalaResponse(result)) {
     throw new Error("Gala returned a response in an unexpected format.");
+  }
+  if (context === "Budget" && result.estimated_budget === undefined) {
+    throw new Error("Gala did not provide a total budget estimate. Ask again or enter a budget manually.");
   }
   return result;
 }

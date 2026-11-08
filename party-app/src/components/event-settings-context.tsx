@@ -36,8 +36,6 @@ type SettingsContext = {
   galaConversationId: string;
   settings: EventSettings;
   setSettings: (value: EventSettings) => void;
-  editing: boolean;
-  setEditing: (value: boolean) => void;
   reset: () => void;
   guestCount: string;
   setGuestCount: (value: string) => void;
@@ -59,7 +57,6 @@ const Context = createContext<SettingsContext | null>(null);
 export function EventSettingsProvider({ children }: { children: ReactNode }) {
   const [galaConversationId, setGalaConversationId] = useState(createGalaConversationId);
   const [settings, setSettings] = useState<EventSettings>(emptySettings);
-  const [editing, setEditing] = useState(false);
   const [guestCount, setGuestCount] = useState("");
   const [eventDate, setEventDate] = useState<Date | null>(null);
   const [eventStartTime, setEventStartTime] = useState<Date | null>(null);
@@ -68,7 +65,6 @@ export function EventSettingsProvider({ children }: { children: ReactNode }) {
 
   function reset() {
     setSettings(emptySettings());
-    setEditing(false);
   }
 
   function resetPreview() {
@@ -81,7 +77,7 @@ export function EventSettingsProvider({ children }: { children: ReactNode }) {
     setBudgetAmount("");
   }
 
-  return <Context.Provider value={{ galaConversationId, settings, setSettings, editing, setEditing, reset, guestCount, setGuestCount, eventDate, setEventDate, eventStartTime, setEventStartTime, budgetChoice, setBudgetChoice, budgetAmount, setBudgetAmount, resetPreview }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ galaConversationId, settings, setSettings, reset, guestCount, setGuestCount, eventDate, setEventDate, eventStartTime, setEventStartTime, budgetChoice, setBudgetChoice, budgetAmount, setBudgetAmount, resetPreview }}>{children}</Context.Provider>;
 }
 
 export function useEventSettings() {

@@ -9,16 +9,26 @@ import { useAppPreferences } from "./app-preferences";
 import { darkPalette } from "./dark-palette";
 import { EventRecord, getEvents } from "../lib/events-api";
 import { EventGuest, getGuests } from "../lib/guests-api";
-import { createTask, deleteTask, EventTask, getTasks, updateTask } from "../lib/tasks-api";
+import { createTask, deleteTask, EventTask, getTasks, TaskPillar, updateTask } from "../lib/tasks-api";
 
-type Draft = { title: string; date: Date | null; assignedGuestId: string | null };
-const emptyDraft: Draft = { title: "", date: null, assignedGuestId: null };
+type Draft = { title: string; date: Date | null; assignedGuestId: string | null; pillar: TaskPillar; pillarLabel: string };
+const emptyDraft: Draft = { title: "", date: null, assignedGuestId: null, pillar: "other", pillarLabel: "Other" };
+const pillarOptions: { label: string; value: TaskPillar }[] = [
+  { label: "Guest", value: "guests" },
+  { label: "Budget", value: "budget" },
+  { label: "Venue", value: "venue_decor" },
+  { label: "Decor", value: "venue_decor" },
+  { label: "Food & Drinks", value: "food" },
+  { label: "Other", value: "other" },
+];
 
 function draftFromTask(task: EventTask): Draft {
   return {
     title: task.title,
     date: task.due_date ? new Date(`${task.due_date}T00:00:00`) : null,
     assignedGuestId: task.assigned_guest_id,
+    pillar: task.pillar,
+    pillarLabel: pillarOptions.find((option) => option.value === task.pillar)?.label ?? "Other",
   };
 }
 
@@ -39,11 +49,12 @@ export function TaskForm({ mode, initialTask }: { mode: "create" | "edit"; initi
   const [baseline, setBaseline] = useState<Draft>(emptyDraft);
   const [taskMenu, setTaskMenu] = useState(false);
   const [assigneeMenu, setAssigneeMenu] = useState(false);
+  const [pillarMenu, setPillarMenu] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const selectedTask = tasks.find((task) => task.id === selectedTaskId);
-  const changed = draft.title !== baseline.title || draft.date?.getTime() !== baseline.date?.getTime() || draft.assignedGuestId !== baseline.assignedGuestId;
+  const changed = draft.title !== baseline.title || draft.date?.getTime() !== baseline.date?.getTime() || draft.assignedGuestId !== baseline.assignedGuestId || draft.pillar !== baseline.pillar;
   const guestName = useMemo(() => new Map(guests.map((guest) => [guest.id, guest.name])), [guests]);
   const assigneeLabel = draft.assignedGuestId ? guestName.get(draft.assignedGuestId) ?? "Guest" : "Me";
 
@@ -68,8 +79,9 @@ export function TaskForm({ mode, initialTask }: { mode: "create" | "edit"; initi
     setBaseline(emptyDraft);
     if (!selectedEventId) return () => { active = false; };
     setLoading(true);
-    Promise.all([getTasks(selectedEventId), getGuests(selectedEventId)]).then(([nextTasks, nextGuests]) => {
+    Promise.all([getTasks(selectedEventId), getGuests(selectedEventId)]).then(([taskList, nextGuests]) => {
       if (!active) return;
+      const nextTasks = taskList.tasks;
       setTasks(nextTasks);
       setGuests(nextGuests);
       if (mode === "edit") {
@@ -107,6 +119,7 @@ export function TaskForm({ mode, initialTask }: { mode: "create" | "edit"; initi
           title: draft.title.trim(),
           dueDate: dateToString(draft.date),
           assignedGuestId: draft.assignedGuestId,
+          pillar: draft.pillar,
         });
       } else {
         if (!selectedTaskId) { setError("Choose a task to edit."); return; }
@@ -114,6 +127,7 @@ export function TaskForm({ mode, initialTask }: { mode: "create" | "edit"; initi
           title: draft.title.trim(),
           dueDate: dateToString(draft.date),
           assignedGuestId: draft.assignedGuestId,
+          pillar: draft.pillar,
         });
       }
       router.replace({ pathname: "/tasks", params: { eventId: selectedEventId } });
@@ -164,6 +178,18 @@ export function TaskForm({ mode, initialTask }: { mode: "create" | "edit"; initi
         </>}
         {(mode === "create" || selectedTask) && <>
           <View style={styles.field}><Text style={styles.label}>What needs to get done?</Text><TextInput accessibilityLabel="Task title" value={draft.title} onChangeText={(title) => { setDraft((current) => ({ ...current, title })); setError(""); }} placeholder="Enter a task" placeholderTextColor={darkMode ? darkPalette.placeholder : "#777777"} maxLength={200} style={[styles.input, darkMode && styles.darkInput]} /></View>
+          <View style={styles.field}>
+            <Text style={styles.label}>Pillar</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Pillar" accessibilityState={{ expanded: pillarMenu }} onPress={() => setPillarMenu(!pillarMenu)} style={[styles.select, darkMode && styles.darkPanel]}>
+              <Text style={[styles.inputText, darkMode && styles.darkText]}>{draft.pillarLabel}</Text>
+              <Ionicons name={pillarMenu ? "chevron-up" : "chevron-down"} size={20} color={darkMode ? darkPalette.accent : "#a43f3a"} />
+            </Pressable>
+            {pillarMenu && <View style={[styles.options, darkMode && styles.darkPanel]}>{pillarOptions.map((option) => (
+              <Pressable key={option.label} accessibilityRole="button" accessibilityState={{ selected: option.label === draft.pillarLabel }} onPress={() => { setDraft((current) => ({ ...current, pillar: option.value, pillarLabel: option.label })); setPillarMenu(false); }} style={styles.option}>
+                <Text style={[styles.inputText, darkMode && styles.darkText]}>{option.label}</Text>
+              </Pressable>
+            ))}</View>}
+          </View>
           <View style={styles.field}><Text style={styles.label}>Due Date (optional)</Text><TaskDatePicker value={draft.date} onChange={(date) => setDraft((current) => ({ ...current, date }))} /></View>
           <View style={styles.field}>
             <Text style={styles.label}>Assign to</Text>

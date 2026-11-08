@@ -38,7 +38,7 @@ export function EventSettingsStep({ onBack, onContinue, eventDetails }: {
   eventDetails: Record<string, unknown>;
 }) {
   const { darkMode } = useAppPreferences();
-  const { settings, setSettings, editing, setEditing } = useEventSettings();
+  const { settings, setSettings } = useEventSettings();
   const [openMenu, setOpenMenu] = useState<MenuKey | null>(null);
   const [timelineOpen, setTimelineOpen] = useState(true);
   const [newItem, setNewItem] = useState("");
@@ -107,32 +107,29 @@ export function EventSettingsStep({ onBack, onContinue, eventDetails }: {
                 <Pressable
                   accessibilityRole="checkbox"
                   accessibilityLabel={item}
-                  accessibilityState={{ checked: settings[key].includes(item), disabled: !editing }}
+                  accessibilityState={{ checked: settings[key].includes(item) }}
                   aria-checked={settings[key].includes(item)}
-                  disabled={!editing}
                   onPress={() => toggleItem(key, item)}
                   style={[styles.option, settings[key].includes(item) && styles.optionSelected]}
                 >
                   <Text style={styles.optionText}>{settings[key].includes(item) ? "✓ " : ""}{item}</Text>
                 </Pressable>
-                {editing && customItems.includes(item) && (
+                {customItems.includes(item) && (
                   <Pressable accessibilityRole="button" accessibilityLabel={`Delete ${item}`} onPress={() => deleteItem(key, item)} style={styles.delete}>
                     <Ionicons name="trash-outline" size={20} color="#ffffff" />
                   </Pressable>
                 )}
               </View>
             ))}
-            {editing && (
-              <>
-                <View style={styles.addRow}>
-                  <TextInput accessibilityLabel={`New ${key === "foods" ? "food" : "drink"} item`} value={newItem} onChangeText={(text) => { setNewItem(text); setItemError(""); }} placeholder="Add an item" placeholderTextColor={darkMode ? darkPalette.placeholder : "#666666"} maxLength={60} style={[styles.input, darkMode && styles.darkInput]} />
-                  <Pressable accessibilityRole="button" accessibilityLabel={`Add ${key === "foods" ? "food" : "drink"} item`} onPress={() => addItem(key)} style={[styles.addButton, darkMode && styles.darkPanel]}>
-                    <Text style={[styles.addText, darkMode && styles.darkAccent]}>Add</Text>
-                  </Pressable>
-                </View>
-                {!!itemError && <Text style={styles.error} accessibilityRole="alert">{itemError}</Text>}
-              </>
-            )}
+            <>
+              <View style={styles.addRow}>
+                <TextInput accessibilityLabel={`New ${key === "foods" ? "food" : "drink"} item`} value={newItem} onChangeText={(text) => { setNewItem(text); setItemError(""); }} placeholder="Add an item" placeholderTextColor={darkMode ? darkPalette.placeholder : "#666666"} maxLength={60} style={[styles.input, darkMode && styles.darkInput]} />
+                <Pressable accessibilityRole="button" accessibilityLabel={`Add ${key === "foods" ? "food" : "drink"} item`} onPress={() => addItem(key)} style={[styles.addButton, darkMode && styles.darkPanel]}>
+                  <Text style={[styles.addText, darkMode && styles.darkAccent]}>Add</Text>
+                </Pressable>
+              </View>
+              {!!itemError && <Text style={styles.error} accessibilityRole="alert">{itemError}</Text>}
+            </>
           </View>
         )}
       </View>
@@ -159,18 +156,16 @@ export function EventSettingsStep({ onBack, onContinue, eventDetails }: {
             <Text style={[styles.label, styles.settingLabel]}>{label}</Text>
             <View style={styles.settingValue}>
               <View style={styles.settingNumber}>
-                {editing ? (
-                  <TextInput
-                    accessibilityLabel={label}
-                    value={settings[key]}
-                    onChangeText={(value) => updateNumber(key, value)}
-                    keyboardType="number-pad"
-                    maxLength={6}
-                    placeholder={key === "duration" ? "Required" : "Optional"}
-                    placeholderTextColor={darkMode ? darkPalette.placeholder : "#666666"}
-                    style={[styles.numberInput, styles.settingInput, darkMode && styles.darkInput]}
-                  />
-                ) : <Text style={[styles.value, styles.settingNumberText]}>{settings[key] || "Not set"}</Text>}
+                <TextInput
+                  accessibilityLabel={label}
+                  value={settings[key]}
+                  onChangeText={(value) => updateNumber(key, value)}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  placeholder={key === "duration" ? "Required" : "Optional"}
+                  placeholderTextColor={darkMode ? darkPalette.placeholder : "#666666"}
+                  style={[styles.numberInput, styles.settingInput, darkMode && styles.darkInput]}
+                />
               </View>
               <Text style={[styles.value, styles.settingUnit]}>{unit}</Text>
             </View>
@@ -210,26 +205,6 @@ export function EventSettingsStep({ onBack, onContinue, eventDetails }: {
         )}
       </View>
       {!!error && <Text style={styles.error} accessibilityLiveRegion="polite">{error}</Text>}
-      <View style={styles.actions}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ disabled: editing && !!error }}
-          accessibilityHint={editing && error ? error : undefined}
-          disabled={editing && !!error}
-          onPress={() => {
-            if (editing) {
-              setEditing(false);
-              setOpenMenu(null);
-            } else {
-              setEditing(true);
-              setTimelineOpen(false);
-            }
-          }}
-          style={[styles.customize, editing && !!error && styles.disabled]}
-        >
-          <Text style={styles.primaryText}>{editing ? "Finalize Changes" : "Customize My Settings"}</Text>
-        </Pressable>
-      </View>
       <Text style={styles.caption}>You can always change these settings later</Text>
       <EventFlowButtons onBack={onBack} onContinue={onContinue} disabled={!!error} disabledHint={error} />
     </>
@@ -272,11 +247,6 @@ const styles = StyleSheet.create({
   addTimelineButton: { alignSelf: "center", marginTop: 4, paddingHorizontal: 12, paddingVertical: 8 },
   number: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 14, width: 20 },
   timelineInput: { flex: 1, minHeight: 44, backgroundColor: "#ffffff", color: "#1e1e1e", borderRadius: 8, paddingHorizontal: 8, fontFamily: "DMSans_400Regular", fontSize: 16 },
-  actions: { flexDirection: "row", gap: 8 },
-  primary: { flex: 1, minHeight: 48, borderRadius: 24, backgroundColor: "#c65d58", justifyContent: "center", alignItems: "center", padding: 8 },
-  customize: { flex: 1, minHeight: 48, borderRadius: 24, backgroundColor: "#686868", justifyContent: "center", alignItems: "center", padding: 8 },
-  disabled: { opacity: 0.55 },
-  primaryText: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 14, textAlign: "center" },
   caption: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 12, textAlign: "center" },
   error: { color: "#4b1714", fontFamily: "DMSans_700Bold", fontSize: 13 },
 });

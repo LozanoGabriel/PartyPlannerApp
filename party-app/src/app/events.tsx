@@ -52,7 +52,7 @@ export default function EventsScreen() {
       return () => { active = false; };
     }
     Promise.all([getTasks(selectedId), getGuests(selectedId)]).then(([nextTasks, nextGuests]) => {
-      if (active) { setTasks(nextTasks); setGuests(nextGuests); }
+      if (active) { setTasks(nextTasks.tasks); setGuests(nextGuests); }
     }).catch((reason: unknown) => {
       if (active) setError(reason instanceof Error ? reason.message : "Could not load event details.");
     });

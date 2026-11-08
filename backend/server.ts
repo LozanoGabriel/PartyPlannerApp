@@ -40,5 +40,5 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 // Last, so everything above is ready before the first request arrives
-const PORT = Number(process.env.PORT) || 3000;
-app.listen(PORT, '0.0.0.0', () => console.log(`Server listening on ${PORT}`));
+const PORT = Number(process.env.PORT) || 56552;
+app.listen(PORT, '192.168.1.208', () => console.log(`Server listening on ${PORT}`));

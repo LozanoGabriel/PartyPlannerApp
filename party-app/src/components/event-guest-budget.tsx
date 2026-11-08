@@ -52,7 +52,8 @@ export function BudgetStep({ onBack, onContinue, eventDetails }: StepProps) {
   const { darkMode, aiSuggestions } = useAppPreferences();
   const { budgetChoice, setBudgetChoice, budgetAmount, setBudgetAmount } = useEventSettings();
   const validAmount = /^\d{1,9}(\.\d{1,2})?$/.test(budgetAmount);
-  const invalidManualBudget = budgetChoice === "manual" && !validAmount;
+  const hasAmount = budgetChoice === "manual" || budgetChoice === "generate";
+  const invalidManualBudget = hasAmount && !validAmount;
 
   function option(choice: Exclude<BudgetChoice, null>, label: string, detail: string, icon: "gala" | "pencil") {
     const selected = budgetChoice === choice;
@@ -73,33 +74,37 @@ export function BudgetStep({ onBack, onContinue, eventDetails }: StepProps) {
       <GalaAssistant
         context="Budget"
         eventDetails={eventDetails}
-        hint="Ask Gala for budget categories—no prices needed."
+        hint="Ask Gala to estimate your total budget and suggest expense categories."
+        onEstimateBudget={(amount) => {
+          setBudgetAmount(String(amount));
+          setBudgetChoice("generate");
+        }}
       />
       <View style={styles.card}>
         <Text style={styles.cardTitle} accessibilityRole="header">How much would you like to spend?</Text>
-        <Text style={styles.subtitle}>{aiSuggestions ? "Set an overall budget. Ask Gala for relevant expense categories." : "Set an overall budget for your event, or skip this step."}</Text>
+        <Text style={styles.subtitle}>{aiSuggestions ? "Set an overall budget or ask Gala for an estimate." : "Set an overall budget for your event, or skip this step."}</Text>
         <View style={[styles.total, darkMode && styles.darkPanel]}>
           <Text style={[styles.totalTitle, darkMode && styles.darkText]}>Your Total Budget</Text>
-          {budgetChoice === "manual" ? (
+          {budgetChoice === "manual" || (budgetChoice === "generate" && !!budgetAmount) ? (
             <>
               <View style={styles.amountEntry}>
                 <Text style={[styles.amount, darkMode && styles.darkText]}>$</Text>
                 <TextInput accessibilityLabel="Your total budget in dollars" value={budgetAmount} onChangeText={setBudgetAmount} keyboardType="decimal-pad" maxLength={12} placeholder="0.00" placeholderTextColor={darkMode ? darkPalette.placeholder : "#666666"} style={[styles.budgetInput, darkMode && styles.darkText]} />
               </View>
-              <Text style={[styles.example, darkMode && styles.darkText]}>Enter an amount in dollars, with up to two decimal places.</Text>
+              <Text style={[styles.example, darkMode && styles.darkText]}>{budgetChoice === "generate" ? "Gala's estimate is filled in; you can adjust it." : "Enter an amount in dollars, with up to two decimal places."}</Text>
             </>
           ) : (
             <>
               <Text style={[styles.amount, darkMode && styles.darkText]}>Not set</Text>
               <Text style={[styles.example, darkMode && styles.darkText]}>
-                {budgetChoice === "generate" ? "Gala can suggest expense categories below." : "Choose a budget option or skip."}
+                "Choose a budget option or skip."
               </Text>
             </>
           )}
         </View>
         <Text style={styles.helpTitle}>{aiSuggestions ? "Would you like Gala to help?" : "Choose a budget approach"}</Text>
         <View style={styles.options} accessibilityRole="radiogroup" accessibilityLabel="Budget approach">
-          {aiSuggestions && option("generate", "Get Budget Suggestions", "Ask Gala for relevant expense categories. No prices or expenses are saved.", "gala")}
+          {aiSuggestions && option("generate", "Get Budget Suggestions", "Ask Gala for an estimated total and relevant expense categories.", "gala")}
           {option("manual", "I'll Do It Myself", "Enter a total budget manually.", "pencil")}
           <Pressable accessibilityRole="radio" accessibilityLabel="Skip for now" accessibilityState={{ checked: budgetChoice === "skip" }} aria-checked={budgetChoice === "skip"} onPress={() => setBudgetChoice("skip")} style={[styles.skip, budgetChoice === "skip" && styles.selected]}>
             <Text style={styles.optionTitle}>Skip for now</Text>
@@ -110,7 +115,7 @@ export function BudgetStep({ onBack, onContinue, eventDetails }: StepProps) {
           {budgetChoice === "manual"
             ? "This total will be saved with the event."
             : budgetChoice === "generate"
-              ? "Gala's suggestions are guidance only; no expense items will be saved."
+              ? "Gala's estimated total will be saved with the event; no expense items will be saved."
               : "You can set a budget later."}
         </Text>
       </View>

@@ -10,9 +10,9 @@ export type Pillar = (typeof PILLARS)[number];
 
 export interface NewTaskInput {
   title: string;
+  pillar: Pillar;
   dueDate?: string | null;           // "YYYY-MM-DD", or null for no due date
   status?: TaskStatus;
-  pillar?: Pillar;
   assignedGuestId?: string | null;   // null = the host does it
 }
 
@@ -23,6 +23,19 @@ export type PatchTaskInput = Partial<NewTaskInput>;
 // It's shown to the host, but only a guest (through their invitation) can change it.
 const TASK_COLUMNS =
   "id, event_id, pillar, title, status, due_date, assigned_guest_id, assignment_status, created_at";
+const TASK_COLUMNS_WITHOUT_DUE_DATE =
+  "id, event_id, pillar, title, status, assigned_guest_id, assignment_status, created_at";
+
+function isMissingDueDateColumn(error: { code?: string; message?: string }) {
+  const message = error.message?.toLowerCase() ?? "";
+  return message.includes("due_date") && (
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    message.includes("does not exist") ||
+    message.includes("could not find") ||
+    message.includes("schema cache")
+  );
+}
 
 // ---------- helpers ----------
 
@@ -139,8 +152,20 @@ export async function getTasksFromSupabase(hostId: string, eventId: string) {
     .order("due_date", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true });
 
-  if (error) throw new RSVPerror(`Failed to load tasks: ${error.message}`, 500);
-  return data ?? [];
+  if (!error) return { tasks: data ?? [], dueDateAvailable: true };
+  if (!isMissingDueDateColumn(error)) throw new RSVPerror(`Failed to load tasks: ${error.message}`, 500);
+
+  const fallback = await supabase
+    .from("tasks")
+    .select(TASK_COLUMNS_WITHOUT_DUE_DATE)
+    .eq("event_id", eventId)
+    .order("created_at", { ascending: true });
+
+  if (fallback.error) throw new RSVPerror(`Failed to load tasks: ${fallback.error.message}`, 500);
+  return {
+    tasks: (fallback.data ?? []).map((task) => ({ ...task, due_date: null })),
+    dueDateAvailable: false,
+  };
 }
 
 // Add a task
@@ -149,6 +174,8 @@ export async function postTaskToSupabase(hostId: string, eventId: string, input:
 
   if (typeof input?.title !== "string" || !input.title.trim())
     throw new RSVPerror("Task title is required", 400);
+  if (!input.pillar || !PILLARS.includes(input.pillar))
+    throw new RSVPerror(`pillar is required and must be one of: ${PILLARS.join(", ")}`, 400);
 
   const row = { ...toRow(input), ...(await assignmentRow(input.assignedGuestId, eventId)) };
 
