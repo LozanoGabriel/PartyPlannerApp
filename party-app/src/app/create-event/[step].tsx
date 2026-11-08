@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { EventFlowButtons, EventFlowLayout, GalaMessage } from "../../components/event-flow";
 import { EventSettingsStep } from "../../components/event-settings-step";
 import { useEventSettings } from "../../components/event-settings-context";
+import { BudgetStep, GuestStep } from "../../components/event-guest-budget";
 
 const eventTypes = [
   { id: "conversation", title: "Conversation / Meet-up", detail: "Coffee meetups and casual gatherings" },
@@ -26,7 +27,7 @@ function isEventType(value: string | string[] | undefined): value is EventType {
 }
 
 export default function CreateEventStep() {
-  const { reset } = useEventSettings();
+  const { resetPreview } = useEventSettings();
   const { step: stepParam, type, name, nameMode } = useLocalSearchParams<{ step: string; type?: string; name?: string; nameMode?: string }>();
   const selected = isEventType(type) ? type : undefined;
   const customName = nameMode === "custom";
@@ -49,7 +50,7 @@ export default function CreateEventStep() {
 
   function goBack() {
     if (step === 1) {
-      reset();
+      resetPreview();
       router.replace("/dashboard");
     } else {
       router.replace({ pathname: "/create-event/[step]", params: { step: String(step - 1), ...routeParams } });
@@ -145,17 +146,10 @@ export default function CreateEventStep() {
         </>
       ) : step === 3 ? (
         <EventSettingsStep onBack={goBack} onContinue={() => goToStep(4)} />
+      ) : step === 4 ? (
+        <GuestStep onBack={goBack} onContinue={() => goToStep(5)} />
       ) : (
-        <View style={styles.placeholder}>
-          <Text style={styles.title} accessibilityRole="header">Step {step} preview</Text>
-          <Text style={styles.subtitle}>This step is coming soon. No event details are saved yet.</Text>
-          <EventFlowButtons
-            onBack={goBack}
-            onContinue={() => step === 5
-              ? router.push({ pathname: "/create-event/submit", params: routeParams })
-              : goToStep(step + 1)}
-          />
-        </View>
+        <BudgetStep onBack={goBack} onContinue={() => router.push({ pathname: "/create-event/submit", params: routeParams })} />
       )}
     </EventFlowLayout>
   );
@@ -181,5 +175,4 @@ const styles = StyleSheet.create({
   customOption: { backgroundColor: "#dedede", flexDirection: "row", gap: 8 },
   customOptionText: { color: "#333333", fontFamily: "DMSans_700Bold", fontSize: 15, textAlign: "center", flexShrink: 1 },
   nameInput: { minHeight: 48, borderRadius: 12, backgroundColor: "#ffffff", color: "#1e1e1e", fontFamily: "DMSans_400Regular", fontSize: 16, paddingHorizontal: 12, marginTop: 4 },
-  placeholder: { flex: 1, justifyContent: "center", gap: 16 },
 });

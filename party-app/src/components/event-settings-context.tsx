@@ -41,20 +41,39 @@ type SettingsContext = {
   editing: boolean;
   setEditing: (value: boolean) => void;
   reset: () => void;
+  guestCount: string;
+  setGuestCount: (value: string) => void;
+  budgetChoice: BudgetChoice;
+  setBudgetChoice: (value: BudgetChoice) => void;
+  budgetAmount: string;
+  setBudgetAmount: (value: string) => void;
+  resetPreview: () => void;
 };
+
+export type BudgetChoice = "generate" | "manual" | "skip" | null;
 
 const Context = createContext<SettingsContext | null>(null);
 
 export function EventSettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<EventSettings>(suggestedSettings);
   const [editing, setEditing] = useState(false);
+  const [guestCount, setGuestCount] = useState("");
+  const [budgetChoice, setBudgetChoice] = useState<BudgetChoice>(null);
+  const [budgetAmount, setBudgetAmount] = useState("");
 
   function reset() {
     setSettings(suggestedSettings());
     setEditing(false);
   }
 
-  return <Context.Provider value={{ settings, setSettings, editing, setEditing, reset }}>{children}</Context.Provider>;
+  function resetPreview() {
+    reset();
+    setGuestCount("");
+    setBudgetChoice(null);
+    setBudgetAmount("");
+  }
+
+  return <Context.Provider value={{ settings, setSettings, editing, setEditing, reset, guestCount, setGuestCount, budgetChoice, setBudgetChoice, budgetAmount, setBudgetAmount, resetPreview }}>{children}</Context.Provider>;
 }
 
 export function useEventSettings() {
