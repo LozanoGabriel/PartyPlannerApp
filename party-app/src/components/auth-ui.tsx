@@ -15,10 +15,13 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useAppPreferences } from "./app-preferences";
+import { darkPalette } from "./dark-palette";
 
 export const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
 export function AuthPage({ children }: { children: ReactNode }) {
+  const { darkMode } = useAppPreferences();
   const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, NanumPenScript_400Regular });
 
   useEffect(() => {
@@ -26,14 +29,14 @@ export function AuthPage({ children }: { children: ReactNode }) {
   }, [fontError]);
 
   return (
-    <SafeAreaView style={styles.page}>
+    <SafeAreaView style={[styles.page, darkMode && { backgroundColor: "#1b1b1b" }]}>
       <Stack.Screen options={{ headerShown: false }} />
       {!fontsLoaded ? (
         <View style={styles.status}>
           {fontError ? (
-            <Text accessibilityRole="alert">Unable to load the fonts. Please restart the app.</Text>
+            <Text style={darkMode && { color: "#ffffff" }} accessibilityRole="alert">Unable to load the fonts. Please restart the app.</Text>
           ) : (
-            <ActivityIndicator size="large" color="#2c2c2c" accessibilityLabel="Loading screen" />
+            <ActivityIndicator size="large" color={darkMode ? "#ffffff" : "#2c2c2c"} accessibilityLabel="Loading screen" />
           )}
         </View>
       ) : (
@@ -48,20 +51,29 @@ export function AuthPage({ children }: { children: ReactNode }) {
 }
 
 export function AuthField({ label, error, ...inputProps }: TextInputProps & { label: string; error?: string }) {
+  const { darkMode } = useAppPreferences();
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, darkMode && darkStyles.text]}>{label}</Text>
       <TextInput
         {...inputProps}
         accessibilityLabel={label}
         accessibilityHint={error}
-        placeholderTextColor="#767676"
-        style={[styles.input, error && styles.invalidInput]}
+        placeholderTextColor={darkMode ? darkPalette.placeholder : "#767676"}
+        style={[styles.input, darkMode && darkStyles.input, error && styles.invalidInput]}
       />
-      {error ? <Text style={styles.error} accessibilityLiveRegion="polite">{error}</Text> : null}
+      {error ? <Text style={[styles.error, darkMode && darkStyles.accent]} accessibilityLiveRegion="polite">{error}</Text> : null}
     </View>
   );
 }
+
+export const darkStyles = StyleSheet.create({
+  card: { backgroundColor: darkPalette.panel, borderColor: "#888888" },
+  input: { backgroundColor: "#202020", color: darkPalette.text, borderColor: "#888888" },
+  text: { color: darkPalette.text },
+  accent: { color: darkPalette.accent },
+  button: { backgroundColor: "#555555", borderColor: "#aaaaaa" },
+});
 
 export const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: "#ffa49f" },

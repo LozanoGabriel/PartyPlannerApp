@@ -5,6 +5,8 @@ import { Animated, Image, Pressable, StyleSheet, Text, TextInput, View } from "r
 import { DashboardLayout } from "../components/dashboard-layout";
 import { Task, TaskGroup, taskExamples } from "../components/task-examples";
 import { usePreviewProgress } from "../components/use-preview-progress";
+import { useAppPreferences } from "../components/app-preferences";
+import { darkPalette } from "../components/dark-palette";
 
 const gala = require("../../assets/images/gala_front_facing.png");
 
@@ -16,10 +18,11 @@ const filters: TaskFilter[] = ["All", "Assigned", "Completed"];
 const dueFilters: DueFilter[] = ["Any", "Today", "Upcoming", "Overdue"];
 
 function TaskCard({ task, open, onToggle, onComplete }: { task: Task; open: boolean; onToggle: () => void; onComplete: () => void }) {
+  const { darkMode } = useAppPreferences();
   return (
-    <View style={styles.taskCard}>
+    <View style={[styles.taskCard, darkMode && styles.darkPanel]}>
       <View style={styles.taskRow}>
-        <Text style={styles.taskTitle}>{task.title}</Text>
+        <Text style={[styles.taskTitle, darkMode && styles.darkText]}>{task.title}</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Options for ${task.title}`}
@@ -27,27 +30,29 @@ function TaskCard({ task, open, onToggle, onComplete }: { task: Task; open: bool
           onPress={onToggle}
           style={styles.moreButton}
         >
-          <Ionicons name="ellipsis-horizontal" size={22} color="#3d2423" />
+          <Ionicons name="ellipsis-horizontal" size={22} color={darkMode ? darkPalette.text : "#3d2423"} />
         </Pressable>
       </View>
       <View style={styles.taskRow}>
-        <Text style={styles.assignee}>Assigned to {task.assignee}</Text>
-        <Text style={styles.due}>{task.due}</Text>
+        <Text style={[styles.assignee, darkMode && styles.darkText]}>Assigned to {task.assignee}</Text>
+        <Text style={[styles.due, darkMode && styles.darkAccent]}>{task.due}</Text>
       </View>
       {open && <View style={styles.taskMenu}>
-        <Pressable accessibilityRole="link" onPress={() => router.push({ pathname: "/edit-tasks", params: { task: task.id } })} style={styles.menuItem}><Text style={styles.linkText}>Edit task</Text></Pressable>
-        {task.group !== "Completed" && <Pressable accessibilityRole="button" onPress={onComplete} style={styles.menuItem}><Text style={styles.linkText}>Mark as completed</Text></Pressable>}
+        <Pressable accessibilityRole="link" onPress={() => router.push({ pathname: "/edit-tasks", params: { task: task.id } })} style={styles.menuItem}><Text style={[styles.linkText, darkMode && styles.darkAccent]}>Edit task</Text></Pressable>
+        {task.group !== "Completed" && <Pressable accessibilityRole="button" onPress={onComplete} style={styles.menuItem}><Text style={[styles.linkText, darkMode && styles.darkAccent]}>Mark as completed</Text></Pressable>}
       </View>}
     </View>
   );
 }
 
 export default function TasksScreen() {
+  const { darkMode, aiSuggestions } = useAppPreferences();
   const { progress, fraction } = usePreviewProgress();
   const [completedIds, setCompletedIds] = useState<string[]>([]);
   const [openTask, setOpenTask] = useState<string | null>(null);
+  const [expandedGroups, setExpandedGroups] = useState<TaskGroup[]>([]);
   const [notice, setNotice] = useState(false);
-  useFocusEffect(useCallback(() => () => { setCompletedIds([]); setOpenTask(null); setNotice(false); }, []));
+  useFocusEffect(useCallback(() => () => { setCompletedIds([]); setOpenTask(null); setExpandedGroups([]); setNotice(false); }, []));
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(false), 3500);
@@ -69,45 +74,45 @@ export default function TasksScreen() {
 
   return (
     <DashboardLayout active="Tasks" overlay={notice ? <View style={styles.toast} accessibilityLiveRegion="polite"><Ionicons name="sparkles" size={20} color="#ffffff" /><Text style={styles.primaryText}>Task completed! (preview)</Text></View> : undefined}>
-      <View style={styles.galaCard}>
+      {aiSuggestions && <View style={[styles.galaCard, darkMode && styles.darkPanel]}>
         <View style={styles.galaHeader}>
           <View style={styles.galaFrame}><Image source={gala} style={styles.gala} resizeMode="contain" accessible={false} /></View>
-          <Text style={styles.cardTitle}>A little help from Gala</Text>
+          <Text style={[styles.cardTitle, darkMode && styles.darkText]}>A little help from Gala</Text>
         </View>
-        <Text style={styles.detail}>You have three tasks due today. Want me to help you prioritize them?</Text>
+        <Text style={[styles.detail, darkMode && styles.darkText]}>You have three tasks due today. Want me to help you prioritize them?</Text>
         <Pressable accessibilityRole="link" onPress={() => router.push("/gala")} style={styles.link}>
-          <Text style={styles.linkText}>Chat with Gala</Text><Ionicons name="arrow-forward" size={18} color="#a43f3a" />
+          <Text style={[styles.linkText, darkMode && styles.darkAccent]}>Chat with Gala</Text><Ionicons name="arrow-forward" size={18} color={darkMode ? darkPalette.accent : "#a43f3a"} />
         </Pressable>
-      </View>
+      </View>}
 
       <View style={styles.overview}>
         <Text style={styles.title} accessibilityRole="header">My Tasks</Text>
         <Text style={styles.subtitle}>A little progress goes a long way.</Text>
         <Text style={styles.preview}>Preview only: summary and task list are separate examples.</Text>
 
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Planning progress</Text>
+        <View style={[styles.card, darkMode && styles.darkPanel]}>
+          <Text style={[styles.cardTitle, darkMode && styles.darkText]}>Planning progress</Text>
           <View style={styles.progress} accessibilityRole="progressbar" accessibilityLabel="Planning progress" accessibilityValue={{ min: 0, max: 20, now: completed, text: `${completed} completed, ${20 - completed} remaining` }}>
             <Animated.View style={[styles.progressFill, { width: progress.interpolate({ inputRange: [0, 1], outputRange: ["0%", `${completed * 5}%`] }) }]} />
           </View>
-          <View style={styles.row}><Text style={styles.detail} accessibilityLabel={`${completed} completed`}>{Math.round(completed * fraction)} completed</Text><Text style={styles.detail} accessibilityLabel={`${20 - completed} remaining`}>{20 - Math.round(completed * fraction)} remaining</Text></View>
+          <View style={styles.row}><Text style={[styles.detail, darkMode && styles.darkText]} accessibilityLabel={`${completed} completed`}>{Math.round(completed * fraction)} completed</Text><Text style={[styles.detail, darkMode && styles.darkText]} accessibilityLabel={`${20 - completed} remaining`}>{20 - Math.round(completed * fraction)} remaining</Text></View>
         </View>
 
         <View style={styles.metrics}>
           {[{ label: "Due today", count: "3", unit: "Tasks" }, { label: "Upcoming", count: "5", unit: "Tasks" }, { label: "Overdue", count: "1", unit: "Task" }].map((item) => (
-            <View key={item.label} style={styles.metric}>
-              <Text style={styles.metricLabel}>{item.label}</Text>
-              <Text style={styles.metricCount}>{item.count}</Text>
-              <Text style={styles.metricLabel}>{item.unit}</Text>
+            <View key={item.label} style={[styles.metric, darkMode && styles.darkPanel]}>
+              <Text style={[styles.metricLabel, darkMode && styles.darkText]}>{item.label}</Text>
+              <Text style={[styles.metricCount, darkMode && styles.darkText]}>{item.count}</Text>
+              <Text style={[styles.metricLabel, darkMode && styles.darkText]}>{item.unit}</Text>
             </View>
           ))}
         </View>
 
-        <View style={styles.searchRow}>
-          <Ionicons name="search" size={20} color="#594441" />
-          <TextInput accessibilityLabel="Search tasks" value={query} onChangeText={setQuery} placeholder="Search tasks..." placeholderTextColor="#6d615e" style={styles.searchInput} returnKeyType="search" />
+        <View style={[styles.searchRow, darkMode && styles.darkPanel]}>
+          <Ionicons name="search" size={20} color={darkMode ? darkPalette.text : "#594441"} />
+          <TextInput accessibilityLabel="Search tasks" value={query} onChangeText={setQuery} placeholder="Search tasks..." placeholderTextColor={darkMode ? darkPalette.placeholder : "#6d615e"} style={[styles.searchInput, darkMode && styles.darkText]} returnKeyType="search" />
           <Pressable accessibilityRole="button" accessibilityLabel="Filter by due date" accessibilityState={{ expanded: showDueFilters }} onPress={() => setShowDueFilters(!showDueFilters)} style={styles.filterIcon}>
-            <Ionicons name="options-outline" size={23} color="#a43f3a" />
+            <Ionicons name="options-outline" size={23} color={darkMode ? darkPalette.accent : "#a43f3a"} />
           </Pressable>
         </View>
         {showDueFilters && (
@@ -134,10 +139,24 @@ export default function TasksScreen() {
         ) : groups.map((group) => {
           const groupTasks = visibleTasks.filter((task) => task.group === group);
           if (!groupTasks.length) return null;
+          const expanded = expandedGroups.includes(group);
           return (
             <View key={group} style={styles.section}>
-              <Text style={styles.sectionTitle} accessibilityRole="header">{group}</Text>
-              {groupTasks.map((task) => <TaskCard key={task.id} task={task} open={openTask === task.id} onToggle={() => setOpenTask(openTask === task.id ? null : task.id)} onComplete={() => { setCompletedIds([...completedIds, task.id]); setOpenTask(null); setNotice(true); }} />)}
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${group}, ${groupTasks.length} ${groupTasks.length === 1 ? "task" : "tasks"}`}
+                accessibilityState={{ expanded }}
+                aria-expanded={expanded}
+                onPress={() => {
+                  setExpandedGroups((current) => expanded ? current.filter((item) => item !== group) : [...current, group]);
+                  if (expanded) setOpenTask(null);
+                }}
+                style={styles.sectionToggle}
+              >
+                <Text style={styles.sectionTitle}>{group} ({groupTasks.length})</Text>
+                <Ionicons name={expanded ? "chevron-up" : "chevron-down"} size={22} color="#ffffff" />
+              </Pressable>
+              {expanded && groupTasks.map((task) => <TaskCard key={task.id} task={task} open={openTask === task.id} onToggle={() => setOpenTask(openTask === task.id ? null : task.id)} onComplete={() => { setCompletedIds((current) => [...current, task.id]); setOpenTask(null); setNotice(true); }} />)}
             </View>
           );
         })}
@@ -145,14 +164,17 @@ export default function TasksScreen() {
       <Pressable accessibilityRole="link" onPress={() => router.push("/create-task")} style={styles.primary}>
         <Text style={styles.primaryText}>Create a Task</Text>
       </Pressable>
-      <Pressable accessibilityRole="link" onPress={() => router.push("/edit-tasks")} style={styles.secondary}>
-        <Text style={styles.secondaryText}>Edit Tasks</Text>
+      <Pressable accessibilityRole="link" onPress={() => router.push("/edit-tasks")} style={[styles.secondary, darkMode && styles.darkPanel]}>
+        <Text style={[styles.secondaryText, darkMode && styles.darkAccent]}>Edit Tasks</Text>
       </Pressable>
     </DashboardLayout>
   );
 }
 
 const styles = StyleSheet.create({
+  darkPanel: { backgroundColor: darkPalette.panel },
+  darkText: { color: darkPalette.text },
+  darkAccent: { color: darkPalette.accent },
   galaCard: { backgroundColor: "#ffffff", borderRadius: 18, padding: 15, gap: 8, marginBottom: 12 },
   galaHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   galaFrame: { width: 52, height: 52, overflow: "hidden", alignItems: "center", justifyContent: "center" },
@@ -188,6 +210,7 @@ const styles = StyleSheet.create({
   tabText: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 13, textAlign: "center" },
   selectedTabText: { color: "#a43f3a" },
   section: { gap: 8 },
+  sectionToggle: { minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
   sectionTitle: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 18 },
   taskCard: { backgroundColor: "#ffffff", borderRadius: 16, paddingHorizontal: 14, paddingVertical: 8, gap: 4 },
   taskRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },

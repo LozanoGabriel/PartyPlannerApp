@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { DashboardLayout } from "../components/dashboard-layout";
 import { GatherBrand } from "../components/gather-brand";
+import { useAppPreferences } from "../components/app-preferences";
 
 // Replace this preview switch with the real event list when the backend is connected.
 const showEmptyState = false;
@@ -13,6 +14,7 @@ const milestones = [
 ];
 
 export default function DashboardScreen() {
+  const { darkMode } = useAppPreferences();
   return (
     <DashboardLayout active="Home" compactContent>
       <View style={styles.dashboard}>
@@ -24,7 +26,7 @@ export default function DashboardScreen() {
       </View>
       <Text style={styles.welcome} accessibilityRole="header">Welcome, Gabriel!</Text>
       <Text style={styles.heading}>Event Overview</Text>
-      <Text style={styles.preview}>Preview only: {showEmptyState ? "not signed in." : "sample data, not signed in."}</Text>
+      <Text style={[styles.preview, darkMode && styles.darkPreview]}>Preview only: {showEmptyState ? "not signed in." : "sample data, not signed in."}</Text>
 
       {showEmptyState ? (
         <View style={styles.card}>
@@ -74,6 +76,7 @@ const styles = StyleSheet.create({
   settings: { width: 48, height: 48, alignItems: "center", justifyContent: "center" },
   heading: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 22, textAlign: "center", marginTop: 2 },
   preview: { color: "#533331", fontFamily: "DMSans_400Regular", fontSize: 12, textAlign: "center", marginTop: 2, marginBottom: 8 },
+  darkPreview: { color: "#ffffff" },
   card: { backgroundColor: "#c65d58", borderRadius: 36, paddingHorizontal: 22, paddingVertical: 12, gap: 3 },
   eventName: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 21 },
   eventDate: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 13, lineHeight: 18 },

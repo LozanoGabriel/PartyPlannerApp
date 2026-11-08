@@ -1,6 +1,6 @@
 import { Image, StyleSheet, View } from "react-native";
 
-const logo = require("../../assets/images/gather_logo.png");
+const logo = require("../../assets/images/gather_logo_transparent.png");
 
 export function GatherBrand({ compact = false }: { compact?: boolean }) {
   return (
