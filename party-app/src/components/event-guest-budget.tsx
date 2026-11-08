@@ -93,7 +93,13 @@ export function BudgetStep({ onBack, onContinue }: StepProps) {
           </Pressable>
         </View>
         {invalidManualBudget && <Text style={styles.error} accessibilityLiveRegion="polite">Enter a valid budget amount to continue.</Text>}
-        <Text style={styles.budgetNotice}>{aiSuggestions ? "Amounts are not saved and budget generation is not available yet." : "Amounts are not saved."}</Text>
+        <Text style={styles.budgetNotice}>
+          {budgetChoice === "manual"
+            ? "This total will be saved with the event."
+            : budgetChoice === "generate"
+              ? "Budget generation is not connected yet."
+              : "You can set a budget later."}
+        </Text>
       </View>
       <EventFlowButtons onBack={onBack} onContinue={onContinue} disabled={invalidManualBudget} disabledHint="Enter a valid budget amount to continue." />
     </>

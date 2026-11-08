@@ -43,6 +43,8 @@ type SettingsContext = {
   reset: () => void;
   guestCount: string;
   setGuestCount: (value: string) => void;
+  eventStartAt: Date | null;
+  setEventStartAt: (value: Date | null) => void;
   budgetChoice: BudgetChoice;
   setBudgetChoice: (value: BudgetChoice) => void;
   budgetAmount: string;
@@ -58,6 +60,7 @@ export function EventSettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<EventSettings>(suggestedSettings);
   const [editing, setEditing] = useState(false);
   const [guestCount, setGuestCount] = useState("");
+  const [eventStartAt, setEventStartAt] = useState<Date | null>(null);
   const [budgetChoice, setBudgetChoice] = useState<BudgetChoice>(null);
   const [budgetAmount, setBudgetAmount] = useState("");
 
@@ -69,11 +72,12 @@ export function EventSettingsProvider({ children }: { children: ReactNode }) {
   function resetPreview() {
     reset();
     setGuestCount("");
+    setEventStartAt(null);
     setBudgetChoice(null);
     setBudgetAmount("");
   }
 
-  return <Context.Provider value={{ settings, setSettings, editing, setEditing, reset, guestCount, setGuestCount, budgetChoice, setBudgetChoice, budgetAmount, setBudgetAmount, resetPreview }}>{children}</Context.Provider>;
+  return <Context.Provider value={{ settings, setSettings, editing, setEditing, reset, guestCount, setGuestCount, eventStartAt, setEventStartAt, budgetChoice, setBudgetChoice, budgetAmount, setBudgetAmount, resetPreview }}>{children}</Context.Provider>;
 }
 
 export function useEventSettings() {

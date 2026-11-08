@@ -7,6 +7,8 @@ import { useEventSettings } from "../../components/event-settings-context";
 import { BudgetStep, GuestStep } from "../../components/event-guest-budget";
 import { useAppPreferences } from "../../components/app-preferences";
 import { darkPalette } from "../../components/dark-palette";
+import { TaskDatePicker } from "../../components/task-date-picker";
+import { EventTimePicker } from "../../components/event-time-picker";
 
 const eventTypes = [
   { id: "conversation", title: "Conversation / Meet-up", detail: "Coffee meetups and casual gatherings" },
@@ -30,10 +32,11 @@ function isEventType(value: string | string[] | undefined): value is EventType {
 
 export default function CreateEventStep() {
   const { darkMode, aiSuggestions } = useAppPreferences();
-  const { resetPreview } = useEventSettings();
+  const { resetPreview, eventStartAt, setEventStartAt } = useEventSettings();
   const { step: stepParam, type, name, nameMode } = useLocalSearchParams<{ step: string; type?: string; name?: string; nameMode?: string }>();
   const selected = isEventType(type) ? type : undefined;
   const customName = nameMode === "custom";
+  const startIsInFuture = !!eventStartAt && eventStartAt.getTime() > Date.now();
   const routeParams = { ...(selected ? { type: selected } : {}), ...(name ? { name } : {}), ...(nameMode ? { nameMode } : {}) };
   const step = Number(stepParam);
 
@@ -145,7 +148,49 @@ export default function CreateEventStep() {
               />
             )}
           </View>
-          <EventFlowButtons onBack={goBack} disabled={!name?.trim()} disabledHint="Choose or enter an event name to continue." onContinue={() => goToStep(3)} />
+          <View style={styles.scheduleSection}>
+            <Text style={styles.centeredTitle} accessibilityRole="header">When does it start?</Text>
+            <View style={styles.scheduleRow}>
+              <View style={styles.scheduleField}>
+                <Text style={styles.scheduleLabel}>Date</Text>
+                <TaskDatePicker
+                  value={eventStartAt}
+                  onChange={(date) => {
+                    if (!date) {
+                      setEventStartAt(null);
+                      return;
+                    }
+                    const start = new Date(date);
+                    if (eventStartAt) start.setHours(eventStartAt.getHours(), eventStartAt.getMinutes(), 0, 0);
+                    else start.setHours(17, 0, 0, 0);
+                    setEventStartAt(start);
+                  }}
+                />
+              </View>
+              <View style={styles.scheduleField}>
+                <Text style={styles.scheduleLabel}>Time</Text>
+                <EventTimePicker
+                  value={eventStartAt}
+                  onChange={(time) => {
+                    const start = new Date(eventStartAt ?? new Date());
+                    start.setHours(time.getHours(), time.getMinutes(), 0, 0);
+                    setEventStartAt(start);
+                  }}
+                />
+              </View>
+            </View>
+            {!startIsInFuture && (
+              <Text style={styles.subtitle} accessibilityLiveRegion="polite">
+                Choose a future date and time for your event.
+              </Text>
+            )}
+          </View>
+          <EventFlowButtons
+            onBack={goBack}
+            disabled={!name?.trim() || !startIsInFuture}
+            disabledHint={!name?.trim() ? "Choose or enter an event name to continue." : "Choose a future event date and time."}
+            onContinue={() => goToStep(3)}
+          />
         </>
       ) : step === 3 ? (
         <EventSettingsStep onBack={goBack} onContinue={() => goToStep(4)} />
@@ -174,6 +219,10 @@ const styles = StyleSheet.create({
   typeTitle: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 14 },
   typeDetail: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 12, lineHeight: 16 },
   nameSection: { gap: 5 },
+  scheduleSection: { gap: 6 },
+  scheduleRow: { flexDirection: "row", gap: 12 },
+  scheduleField: { flex: 1, gap: 4 },
+  scheduleLabel: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 14 },
   centeredTitle: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 18, textAlign: "center" },
   nameList: { gap: 7, marginTop: 5 },
   nameOption: { minHeight: 46, backgroundColor: "#c65d58", borderRadius: 14, borderWidth: 3, borderColor: "transparent", paddingHorizontal: 12, paddingVertical: 8, justifyContent: "center", alignItems: "center" },

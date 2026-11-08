@@ -22,7 +22,8 @@ export interface NewEventInput {
 // For PATCH: send only the fields that changed
 export type PatchEventInput = Partial<NewEventInput>;
 
-const EVENT_COLUMNS = "id, name, event_type, start_time, end_time, expected_headcount";
+const EVENT_COLUMNS =
+  "id, name, event_type, start_time, end_time, rsvp_deadline, total_budget, expected_headcount";
 
 // Shared by create and patch. Throws a 400 if anything is wrong, returns the parsed dates.
 function validateEventInput(input: NewEventInput) {
