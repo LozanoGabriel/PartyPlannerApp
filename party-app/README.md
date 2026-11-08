@@ -31,7 +31,9 @@ The initial `/` route redirects to `/login`. Sign-in and sign-up open an unauthe
 
 The terms and privacy notice is draft placeholder text, not an actual policy or recorded consent. Replace it with approved terms describing the real data and AI practices before enabling registration.
 
-The dashboard, its event and milestone data, and the Events, Tasks, Gala, and Settings pages are previews only. The sample countdowns are based on November 7, 2026; event creation is not yet available.
+The dashboard, its event and milestone data, and the Events, Tasks, Gala, and Settings pages are previews only. The sample countdowns are based on November 7, 2026. The dashboard's `showEmptyState` switch previews the no-events fallback; replace it with real event data when the backend is connected.
+
+Create new event opens a five-step preview. Step 1 requires an event type and step 2 requires a suggested or custom name. Suggestions are fixed birthday examples, not AI-generated. Steps 3–5 and the submission page are placeholders. Choices are only carried through the preview routes; no event is submitted or saved.
 
 For an Android development build, run `npx expo start --dev-client` and open the installed development app. After changing bundler dependencies, restart Metro with `npx expo start --dev-client --clear`.
 

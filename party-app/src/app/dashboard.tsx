@@ -4,6 +4,8 @@ import { Image, Pressable, StyleSheet, Text, useWindowDimensions, View } from "r
 import { DashboardLayout } from "../components/dashboard-layout";
 
 const gala = require("../../assets/images/gala_front_facing.png");
+// Replace this preview switch with the real event list when the backend is connected.
+const showEmptyState = false;
 const milestones = [
   { title: "RSVP Deadline", detail: "All guests should respond", date: "Nov 21, 2026", due: "Due in 14 days" },
   { title: "Finalize Food Menu", detail: "Confirm catering and drinks", date: "Nov 28, 2026", due: "Due in 21 days" },
@@ -15,7 +17,7 @@ export default function DashboardScreen() {
   const welcomeSize = Math.min(43, Math.max(24, (width - 166) * 0.165));
 
   return (
-    <DashboardLayout active="Home">
+    <DashboardLayout active="Home" compactContent>
       <View style={styles.header}>
         <View style={styles.galaFrame}>
           <Image source={gala} style={styles.gala} resizeMode="contain" accessible={false} />
@@ -34,9 +36,14 @@ export default function DashboardScreen() {
         </Pressable>
       </View>
       <Text style={styles.heading}>Event Overview</Text>
-      <Text style={styles.preview}>Preview only: sample data, not signed in.</Text>
+      <Text style={styles.preview}>Preview only: {showEmptyState ? "not signed in." : "sample data, not signed in."}</Text>
 
-      <View style={styles.card}>
+      {showEmptyState ? (
+        <View style={styles.card}>
+          <Text style={styles.eventName}>No events yet</Text>
+          <Text style={styles.eventDate}>Create your first event to start planning something special.</Text>
+        </View>
+      ) : <View style={styles.card}>
         <Text style={styles.eventName}>Mario&apos;s Birthday</Text>
         <Text style={styles.eventDate}>December 5th, 2026 • 5:00 PM EST</Text>
 
@@ -63,8 +70,8 @@ export default function DashboardScreen() {
           </View>
         ))}
         <Text style={styles.sampleNote}>Example timeline based on November 7, 2026.</Text>
-      </View>
-      <Pressable style={styles.createButton} disabled accessibilityRole="button" accessibilityState={{ disabled: true }} accessibilityHint="Event creation is not available yet.">
+      </View>}
+      <Pressable style={styles.createButton} accessibilityRole="link" onPress={() => router.push({ pathname: "/create-event/[step]", params: { step: "1" } })}>
         <Text style={styles.createText}>Create new event</Text>
       </Pressable>
     </DashboardLayout>
@@ -73,27 +80,27 @@ export default function DashboardScreen() {
 
 const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", gap: 6 },
-  galaFrame: { width: 60, height: 60, overflow: "hidden", alignItems: "center", justifyContent: "center" },
-  gala: { width: 100, height: 100 },
+  galaFrame: { width: 48, height: 48, overflow: "hidden", alignItems: "center", justifyContent: "center" },
+  gala: { width: 80, height: 80 },
   welcome: { flex: 1, color: "#ffffff", fontFamily: "NanumPenScript_400Regular" },
   settings: { width: 48, height: 48, alignItems: "center", justifyContent: "center" },
-  heading: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 24, textAlign: "center", marginTop: 14 },
-  preview: { color: "#533331", fontFamily: "DMSans_400Regular", fontSize: 12, textAlign: "center", marginTop: 4, marginBottom: 14 },
-  card: { backgroundColor: "#c65d58", borderRadius: 60, paddingHorizontal: 28, paddingVertical: 32, gap: 10 },
-  eventName: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 24 },
-  eventDate: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 14, lineHeight: 21 },
-  rsvpHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 14 },
-  sectionTitle: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 19, marginTop: 8 },
-  rsvpCount: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 18 },
-  progress: { height: 10, borderRadius: 8, backgroundColor: "#e8a29e", overflow: "hidden" },
+  heading: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 22, textAlign: "center", marginTop: 2 },
+  preview: { color: "#533331", fontFamily: "DMSans_400Regular", fontSize: 12, textAlign: "center", marginTop: 2, marginBottom: 8 },
+  card: { backgroundColor: "#c65d58", borderRadius: 36, paddingHorizontal: 22, paddingVertical: 12, gap: 3 },
+  eventName: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 21 },
+  eventDate: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 13, lineHeight: 18 },
+  rsvpHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 },
+  sectionTitle: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 17, marginTop: 4 },
+  rsvpCount: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 16 },
+  progress: { height: 8, borderRadius: 8, backgroundColor: "#e8a29e", overflow: "hidden" },
   progressFill: { width: "60%", height: "100%", backgroundColor: "#ffffff", borderRadius: 8 },
-  milestone: { flexDirection: "row", alignItems: "center", gap: 8, borderTopWidth: 1, borderTopColor: "#e0938f", paddingTop: 12 },
-  milestoneText: { flex: 1, gap: 3 },
-  milestoneTitle: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 15 },
-  detail: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 13, lineHeight: 18 },
-  date: { alignItems: "center", gap: 4 },
+  milestone: { flexDirection: "row", alignItems: "center", gap: 8, borderTopWidth: 1, borderTopColor: "#e0938f", paddingTop: 6 },
+  milestoneText: { flex: 1, gap: 1 },
+  milestoneTitle: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 14 },
+  detail: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 12, lineHeight: 16 },
+  date: { alignItems: "center", gap: 2 },
   dateText: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 11 },
-  sampleNote: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 11, marginTop: 4 },
-  createButton: { backgroundColor: "#c65d58", borderRadius: 60, alignItems: "center", padding: 17, marginTop: 18, opacity: 0.7 },
+  sampleNote: { color: "#ffffff", fontFamily: "DMSans_400Regular", fontSize: 11 },
+  createButton: { backgroundColor: "#c65d58", borderRadius: 60, alignItems: "center", justifyContent: "center", minHeight: 48, padding: 12, marginTop: 10 },
   createText: { color: "#ffffff", fontFamily: "DMSans_700Bold", fontSize: 16 },
 });

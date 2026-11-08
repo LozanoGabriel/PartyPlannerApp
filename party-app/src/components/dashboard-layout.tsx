@@ -5,7 +5,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { useFonts } from "expo-font";
 import { Href, router, Stack } from "expo-router";
 import { ReactNode, useEffect } from "react";
-import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const galaIcon = require("../../assets/images/navbar_gala_button.png");
@@ -17,7 +17,12 @@ const links: { label: NavPage; href: Href; icon: "home-outline" | "calendar-outl
   { label: "Gala", href: "/gala", icon: null },
 ];
 
-export function DashboardLayout({ children, active }: { children: ReactNode; active?: NavPage }) {
+export function DashboardLayout({ children, active, showNavigation = true, compactContent = false }: {
+  children: ReactNode;
+  active?: NavPage;
+  showNavigation?: boolean;
+  compactContent?: boolean;
+}) {
   const [loaded, error] = useFonts({
     DMSans_400Regular,
     DMSans_700Bold,
@@ -37,15 +42,17 @@ export function DashboardLayout({ children, active }: { children: ReactNode; act
           {error ? (
             <Text accessibilityRole="alert">Unable to load the dashboard fonts. Please restart the app.</Text>
           ) : (
-            <ActivityIndicator size="large" color="#2c2c2c" accessibilityLabel="Loading dashboard" />
+            <ActivityIndicator size="large" color="#2c2c2c" accessibilityLabel="Loading page" />
           )}
         </View>
       ) : (
         <>
-          <ScrollView contentContainerStyle={layout.content} showsVerticalScrollIndicator={false}>
-            {children}
-          </ScrollView>
-          <View style={layout.navbar}>
+          <KeyboardAvoidingView style={layout.scrollArea} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+            <ScrollView contentContainerStyle={[layout.content, compactContent && layout.compactContent]} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {children}
+            </ScrollView>
+          </KeyboardAvoidingView>
+          {showNavigation && <View style={layout.navbar}>
             {links.map(({ label, href, icon }) => (
               <Pressable
                 key={label}
@@ -63,7 +70,7 @@ export function DashboardLayout({ children, active }: { children: ReactNode; act
                 <Text style={[layout.navLabel, active === label && layout.selected]}>{label}</Text>
               </Pressable>
             ))}
-          </View>
+          </View>}
         </>
       )}
     </SafeAreaView>
@@ -89,7 +96,9 @@ export function DashboardPlaceholder({ title, active }: { title: string; active?
 const layout = StyleSheet.create({
   page: { flex: 1, backgroundColor: "#ffa49f" },
   status: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+  scrollArea: { flex: 1 },
   content: { flexGrow: 1, width: "100%", maxWidth: 600, alignSelf: "center", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24 },
+  compactContent: { paddingHorizontal: 12, paddingVertical: 12 },
   navbar: {
     width: "90%", maxWidth: 560, alignSelf: "center", flexDirection: "row",
     justifyContent: "space-around", backgroundColor: "#c65d58", borderRadius: 60,
