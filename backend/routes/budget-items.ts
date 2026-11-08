@@ -1,5 +1,5 @@
 import express from "express"
-import { getBudgetFromSupabase, postBudgetToSupabase, deleteBudgetFromSupabase, patchBudgetInSupabase } from "../database/functions"
+import { getBudgetFromSupabase, postBudgetToSupabase, patchBudgetInSupabase } from "../database/functions"
 
 
 //This route is intended for the creation of Guests for an event.
@@ -23,7 +23,7 @@ router.post("/:eventId", (req, res) => {
 router.delete("/:budgetId", (req, res) => {
     const jwt = req.body.jwt
     const budgetId = req.params.budgetId
-    res.json(deleteBudgetFromSupabase(jwt,budgetId)) 
+    res.json() 
 })
 
 router.patch("/:budgetId", (req, res) => {

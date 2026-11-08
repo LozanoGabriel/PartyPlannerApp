@@ -1,0 +1,1 @@
+export type eventCreationSteps = "Event Type" | "Name" | "Prompt" | "Budget" | "Task"

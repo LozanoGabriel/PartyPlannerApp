@@ -2,7 +2,7 @@ import express, { Response } from "express"
 import { getInvitationPage, postRSVPtoSupabase, getInvitationLink, RSVPerror } from "../database/invitation_logic"
 import { requireAuth } from "../middleware/requireAuth"
 
-// This route is intended for RSVP
+//TYPO IN MAIN FILE NAME!// This route is intended for RSVP
 // The guest routes are PUBLIC: the token in the URL is the credential, so there is no login.
 // The link route at the bottom is for the host and needs the Authorization header.
 const router = express.Router()
