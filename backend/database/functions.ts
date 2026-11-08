@@ -1,5 +1,5 @@
 //TODO: Change from mock data to true integration
-import { supabase } from 
+import { supabase } from "../server"
 import { EventDetails } from "../../interfaces/event-details"
 import { mockGuestDetails, mockOk, mockTaskDetails, mockBudget, mockEventDetails } from "../mock-data"
 
@@ -13,8 +13,9 @@ Promise<EventDetails | null> {
 
     const {data, error} = await supabase
         .from('events')
-        .select('Id, name, description, event_type, start_type, end_time, additional_fields')
+        .select('Id, name, description, event_type, start_time, end_time, additional_fields')
         .eq('id',eventId)
+        .maybeSingle()
 
         if(error){
             throw new Error('Failed to fetch event: ${error.message}')

@@ -2,7 +2,7 @@ import 'dotenv/config';
 import {createClient} from '@supabase/supabase-js'
 import express from "express"
 import cors from "cors"
-import eventDetailRoutes from "./routes/event-details-routes"
+import eventDetailRoutes from "./routes/event-rvsp-forum"
 
 const app = express();
 app.use(cors());

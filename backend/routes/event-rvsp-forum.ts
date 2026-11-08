@@ -1,7 +1,7 @@
 import express from "express"
 import { fetchEventDetailsFromSupabase, postRSVPtoSupabase } from "../database/functions"
 
-
+//TYPO IN MAIN FILE NAME!
 //This route is intended for RSVP 
 const router = express.Router()
 
