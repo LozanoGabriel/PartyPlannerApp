@@ -4,20 +4,17 @@
     "slug": "party-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/gather_logo.png",
     "scheme": "partyapp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
       "googleServicesFile": "./GoogleService-Info.plist",
       "bundleIdentifier": "com.partyplanner.partyplannerapp"
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#FFA49F",
+        "foregroundImage": "./assets/images/gather_adaptive_foreground.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.partyplanner.partyplannerapp",
@@ -25,10 +22,17 @@
     },
     "web": {
       "output": "server",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/gather_logo.png"
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow gather to select an image for your event.",
+          "microphonePermission": false
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -44,7 +48,7 @@
             "cmakeVersion": "4.1.2"
           },
           "ios": {
-          "useFrameworks": "dynamic"
+            "useFrameworks": "dynamic"
           }
         }
       ],
@@ -58,6 +62,7 @@
         "@react-native-firebase/app",
         {}
       ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,
