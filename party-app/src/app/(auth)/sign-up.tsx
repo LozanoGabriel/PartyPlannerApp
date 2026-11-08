@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 import { AuthField, AuthPage, darkStyles, isValidEmail, styles } from "../../components/auth-ui";
 import { useAppPreferences } from "../../components/app-preferences";
+import { getSupabaseClient } from "../../lib/supabase";
+import { signInWithGoogle } from "../../lib/google-auth";
 
 const logo = require("../../../assets/images/gather_frame_3.png");
 
@@ -15,6 +17,9 @@ export default function SignUpScreen() {
   const [agreed, setAgreed] = useState(false);
   const [termsVisible, setTermsVisible] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authError, setAuthError] = useState<string>();
+  const [notice, setNotice] = useState<string>();
   const { width } = useWindowDimensions();
   const logoSize = Math.min(width, 480);
 
@@ -25,10 +30,47 @@ export default function SignUpScreen() {
     ? "Passwords must match." : undefined;
   const termsError = submitted && !agreed ? "Please agree to the terms to continue." : undefined;
 
-  function submit() {
+  async function submit() {
     setSubmitted(true);
-    if (fullName.trim() && isValidEmail(email) && password && confirmPassword === password && agreed) {
-      router.push("/dashboard");
+    setAuthError(undefined);
+    setNotice(undefined);
+    if (!fullName.trim() || !isValidEmail(email) || !password || confirmPassword !== password || !agreed) return;
+
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await getSupabaseClient().auth.signUp({
+        email: email.trim(),
+        password,
+        options: { data: { full_name: fullName.trim() } },
+      });
+      if (error) {
+        setAuthError(error.message);
+      } else if (data.session) {
+        router.replace("/dashboard");
+      } else {
+        setNotice("Account created. Check your email for a confirmation link before signing in.");
+      }
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Unable to create your account.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function googleSignUp() {
+    setSubmitted(true);
+    setAuthError(undefined);
+    setNotice(undefined);
+    if (!agreed) return;
+
+    setIsSubmitting(true);
+    try {
+      const result = await signInWithGoogle();
+      if (result === "success") router.replace("/dashboard");
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Unable to sign up with Google.");
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -72,10 +114,28 @@ export default function SignUpScreen() {
           </Pressable>
           {termsError && <Text style={[styles.error, darkMode && darkStyles.accent]} accessibilityLiveRegion="polite">{termsError}</Text>}
         </View>
-        <Pressable style={[styles.button, darkMode && darkStyles.button]} accessibilityRole="button" onPress={submit}>
-          <Text style={styles.buttonText}>Sign Up (preview)</Text>
+        {authError && <Text style={[styles.error, darkMode && darkStyles.accent]} accessibilityLiveRegion="polite">{authError}</Text>}
+        {notice && <Text style={[styles.notice, darkMode && darkStyles.text]} accessibilityLiveRegion="polite">{notice}</Text>}
+        <Pressable
+          style={[styles.button, darkMode && darkStyles.button, isSubmitting && styles.disabled]}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSubmitting }}
+          disabled={isSubmitting}
+          onPress={submit}
+        >
+          <Text style={styles.buttonText}>{isSubmitting ? "Creating Account..." : "Sign Up"}</Text>
         </Pressable>
-        <Text style={[styles.notice, darkMode && darkStyles.text]}>Preview only: no account will be created.</Text>
+        <Pressable
+          style={[styles.button, styles.googleButton, darkMode && darkStyles.button, isSubmitting && styles.disabled]}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSubmitting }}
+          disabled={isSubmitting}
+          onPress={googleSignUp}
+        >
+          <Text style={[styles.googleButtonText, darkMode && darkStyles.text]}>
+            {isSubmitting ? "Please wait..." : "Continue with Google"}
+          </Text>
+        </Pressable>
         <Pressable accessibilityRole="link" onPress={() => router.replace("/login")}>
           <Text style={[styles.link, darkMode && darkStyles.text]}>Back to sign in</Text>
         </Pressable>
@@ -86,7 +146,7 @@ export default function SignUpScreen() {
           <View style={[local.modal, darkMode && darkStyles.card]} accessibilityViewIsModal>
             <ScrollView contentContainerStyle={local.modalContent}>
               <Text style={[local.heading, darkMode && darkStyles.text]} accessibilityRole="header">Terms and privacy (draft)</Text>
-              <Text style={[styles.label, darkMode && darkStyles.text]}>This is a placeholder for review, not the final terms or privacy policy. Account registration is not yet available.</Text>
+              <Text style={[styles.label, darkMode && darkStyles.text]}>This is a placeholder for review, not the final terms or privacy policy.</Text>
               <Text style={[styles.label, darkMode && darkStyles.text]}>The final notice should explain how account and event information is collected, used, stored, and shared, including any information sent to AI providers.</Text>
               <Text style={[styles.label, darkMode && darkStyles.text]}>It should also explain applicable privacy rights, how to make a request, and the limitations of AI-generated suggestions.</Text>
               <Pressable style={[styles.button, darkMode && darkStyles.button]} accessibilityRole="button" onPress={() => setTermsVisible(false)}>
