@@ -1,5 +1,5 @@
 import express from "express"
-import { getBudgetFromSupabase, postBudgetToSupabase, patchBudgetInSupabase } from "../database/functions"
+import { getBudgetFromSupabase, patchBudgetInSupabase, postBudgetToSupabase } from "../database/budget_logic"
 
 
 //This route is intended for the creation of Guests for an event.

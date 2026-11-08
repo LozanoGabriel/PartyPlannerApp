@@ -1,6 +1,5 @@
 import express from "express"
-import { getTasksFromSupabase, postTaskToSupabase, deleteTaskFromSupabase, patchTaskInSupabase } from "../database/functions"
-
+import { getTasksFromSupabase, postTaskToSupabase, deleteTaskFromSupabase, patchTaskInSupabase } from "../database/todolist_logic"
 
 //This route is intended for the creation of Guests for an event.
 const router = express.Router()
